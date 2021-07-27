@@ -8,7 +8,7 @@ use pc_keyboard::{layouts, DecodedKey, HandleControl, Keyboard, ScancodeSet1};
 use spin;
 use crate::{
     println, print, gdt, hlt_loop, 
-    mouse::{
+    drivers::mouse::{
         Mouse, init_mouse, MouseEvent
     },
     vga_buffer::WRITER,
