@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+    "titanium",
+    "cargo-image",
+]
