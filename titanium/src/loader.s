@@ -2,18 +2,19 @@
 .code32
 
 .extern long_mode_start
-
-.set ALIGN,    1<<0             /* align loaded modules on page boundaries */
-.set MEMINFO,  1<<1             /* provide memory map */
-.set FLAGS,    ALIGN | MEMINFO  /* this is the Multiboot 'flag' field */
-.set MAGIC,    0x1BADB002       /* 'magic number' lets bootloader find the header */
-.set CHECKSUM, -(MAGIC + FLAGS) /* checksum of above, to prove we are multiboot */
  
 .section .multiboot
-.align 4
-.long MAGIC
-.long FLAGS
-.long CHECKSUM
+.balign 8
+multiboot2_header_start:
+.long   0xe85250d6
+.long   0
+.long   multiboot2_header_end - multiboot2_header_start
+.long   -(0xe85250d6 + (multiboot2_header_end - multiboot2_header_start))
+.balign 8
+.short   0
+.short   0
+.long   8
+multiboot2_header_end:
 
 .section .bss
 .balign 16
@@ -33,6 +34,7 @@ stack_top:
 
 _start:
     mov esp, OFFSET stack_top
+    mov edi, ebx
 
     call check_multiboot
     call check_cpuid
@@ -44,7 +46,7 @@ _start:
     ljmp 0x8, long_mode_start
 
 check_multiboot:
-    cmp eax, 0x2badb002
+    cmp eax, 0x36d76289
     jne .no_multiboot
     ret
 .no_multiboot:

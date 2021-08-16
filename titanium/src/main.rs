@@ -37,7 +37,7 @@ fn test2() {
 }
 
 #[no_mangle]
-pub extern "C" fn kernel_main() -> ! {  
+pub extern "C" fn kernel_main(multiboot_ptr: usize) -> ! {  
     println!("Hello, world!\nHow are you on this most glorious of days?");
     gdt::init();
     interrupt::init_idt();

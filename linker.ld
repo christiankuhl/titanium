@@ -15,7 +15,7 @@ SECTIONS
 	   Next we'll put the .text section. */
 	.text : ALIGN(4K)
 	{
-		*(.multiboot)
+		KEEP(*(.multiboot))
 		*(.text)
 	}
  
