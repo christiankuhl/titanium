@@ -16,7 +16,6 @@ fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
 }
 
 use core::panic::PanicInfo;
-// use x86_64::VirtAddr;
 
 mod multiboot;
 mod drivers;
@@ -27,39 +26,37 @@ mod memory;
 mod allocator;
 mod pci;
 mod multitasking;
-
-fn test1() {
-    loop {
-        print!("A");
-    }
-}
-
-fn test2() {
-    loop {
-        print!("B");
-    }
-}
+mod serial;
 
 #[no_mangle]
-pub extern "C" fn kernel_main(multiboot_info: &multiboot::MultibootInfo) -> ! {  
-    println!("Hello, world!\nHow are you on this most glorious of days?");
+pub extern "C" fn kernel_main(multiboot_info: &multiboot::MultibootInfo) -> ! {
+    debugprintln!("Entering Rust kernel...");
+
+    debugprintln!("\nBootloader left us the following memory areas:");
+    for region in multiboot_info.memory_map().iter() {
+        debugprintln!("start: 0x{:0x}, length: {:}", region.base_addr, region.length);
+    }
+
+    debugprintln!("\nKernel sections:");
+    for (idx, section) in multiboot_info.elf_sections().enumerate() {
+        debugprintln!("    [{}] {} addr: 0x{:0x}, size: {:0x}, flags: 0x{:0x}", idx, section.name(), section.addr, section.size, section.flags);
+    }
+
+    debugprintln!("\nStart of kernel: 0x{:x}", multiboot_info.kernel_start());
+    debugprintln!("End of kernel: 0x{:x}", multiboot_info.kernel_end());
+    debugprintln!("Start of multiboot info section: 0x{:x}", multiboot_info.multiboot_start());
+    debugprintln!("End of multiboot info section: 0x{:x}", multiboot_info.multiboot_end());
+    
+    debugprintln!("\nInitialising global descriptor table...");
     gdt::init();
+    
+    debugprintln!("\nInitialising interrupt descriptor table...");
     interrupt::init_idt();
+    
+    debugprintln!("\nInitialising interrupt controller...");
     unsafe { interrupt::PICS.lock().initialize() }; 
     
-    // println!("Memory areas:");
-    // for region in multiboot_info.memory_map().iter() {
-    //     println!("start: 0x{:0x}, length: {:}", region.base_addr, region.length);
-    // }
-    // println!("Kernel sections:");
-    // let k = multiboot_info.elf_sections();
-    // for (idx, section) in k.enumerate() {
-    //     println!("    [{}] {} addr: 0x{:0x}, size: {:0x}, flags: 0x{:0x}", idx, section.name(), section.addr, section.size, section.flags);
-    // }
-    println!("Start of kernel: 0x{:x}", multiboot_info.kernel_start());
-    println!("End of kernel: 0x{:x}", multiboot_info.kernel_end());
-    println!("Start of multiboot info section: 0x{:x}", multiboot_info.multiboot_start());
-    println!("End of multiboot info section: 0x{:x}", multiboot_info.multiboot_end());
+
 
 
     // let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset.into_option().unwrap());
@@ -82,6 +79,8 @@ pub extern "C" fn kernel_main(multiboot_info: &multiboot::MultibootInfo) -> ! {
     // }
 
     // let b = alloc::boxed::Box::new([0u8; 1usize << 21]);
+
+    println!("Hello, world!\nHow are you on this most glorious of days?");
 
     x86_64::instructions::interrupts::enable();
     hlt_loop();
