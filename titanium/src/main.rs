@@ -18,6 +18,7 @@ fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
 use core::panic::PanicInfo;
 // use x86_64::VirtAddr;
 
+mod multiboot;
 mod drivers;
 mod vga_buffer;
 mod interrupt;
@@ -40,7 +41,7 @@ fn test2() {
 }
 
 #[no_mangle]
-pub extern "C" fn kernel_main(multiboot_info: &memory::MultibootInfo) -> ! {  
+pub extern "C" fn kernel_main(multiboot_info: &multiboot::MultibootInfo) -> ! {  
     println!("Hello, world!\nHow are you on this most glorious of days?");
     gdt::init();
     interrupt::init_idt();
