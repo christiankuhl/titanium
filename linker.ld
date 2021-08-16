@@ -16,13 +16,13 @@ SECTIONS
 	.text : ALIGN(4K)
 	{
 		KEEP(*(.multiboot))
-		*(.text)
+		*(.text .text.*)
 	}
  
 	/* Read-only data. */
 	.rodata : ALIGN(4K)
 	{
-		*(.rodata*)
+		*(.rodata .rodata.*)
 	}
  
 	/* Read-write data (initialized) */
@@ -31,6 +31,10 @@ SECTIONS
 		*(.data)
 	}
  
+	.data.rel.ro : {
+        *(.data.rel.ro.local*) *(.data.rel.ro .data.rel.ro.*)
+    }
+
 	/* Read-write data (uninitialized) and stack */
 	.bss  : ALIGN(4K)
 	{

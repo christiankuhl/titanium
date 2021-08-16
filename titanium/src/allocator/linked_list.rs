@@ -1,5 +1,3 @@
-use crate::println;
-
 use super::{Locked, align_up};
 use alloc::alloc::{GlobalAlloc, Layout};
 use core::{ptr, mem};

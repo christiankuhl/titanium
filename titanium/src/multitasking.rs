@@ -1,6 +1,6 @@
-use core::{fmt::Debug, mem::size_of};
+use core::fmt::Debug;
 use x86_64::{VirtAddr, structures::idt::InterruptStackFrame};
-use alloc::{borrow::ToOwned, boxed::Box};
+use alloc::boxed::Box;
 use lazy_static::lazy_static;
 
 use crate::println;

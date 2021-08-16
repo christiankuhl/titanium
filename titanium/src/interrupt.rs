@@ -1,5 +1,5 @@
 use lazy_static::lazy_static;
-use volatile::Volatile;
+// use volatile::Volatile;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode};
 use x86_64::instructions::port::Port;
 use x86_64::registers::control::Cr2;
@@ -7,14 +7,14 @@ use x86_64::instructions::interrupts::without_interrupts;
 use pic8259::ChainedPics;
 use pc_keyboard::{layouts, DecodedKey, HandleControl, Keyboard, ScancodeSet1};
 use spin;
-use crate::multitasking::CPUState;
+// use crate::multitasking::CPUState;
 use crate::{
     println, print, gdt, hlt_loop, 
     drivers::mouse::{
         Mouse, init_mouse, MouseEvent
     },
     vga_buffer::WRITER,
-    multitasking::TASKMANAGER,
+    // multitasking::TASKMANAGER,
 };
 
 pub const PIC_1_OFFSET: u8 = 0x20;

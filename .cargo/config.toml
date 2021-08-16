@@ -2,5 +2,6 @@
 kbuild = ["build", "--manifest-path=titanium/Cargo.toml", 
                     "-Zbuild-std-features=compiler-builtins-mem",
                     "-Zbuild-std=core,compiler_builtins,alloc",
-                    "--target=titanium/x86_64-titanium.json",]
+                    "--target=titanium/x86_64-titanium.json",
+                    "--release"]
 ibuild = ["build", "--manifest-path=cargo-image/Cargo.toml", "--release"]

@@ -1,7 +1,9 @@
 use core::{marker::PhantomData, ops::Shr, ops::Shl, ops::BitAnd, ops::BitOr};
 use core::mem::size_of;
 use x86_64::instructions::port::Port;
-use crate::{drivers::DriverManager, println};
+use crate::{
+    // drivers::DriverManager, 
+    println};
 
 mod devices;
 mod vendors;
