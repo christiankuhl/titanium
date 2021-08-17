@@ -56,9 +56,6 @@ pub extern "C" fn kernel_main(multiboot_info: &multiboot::MultibootInfo) -> ! {
     debugprintln!("\nInitialising interrupt controller...");
     unsafe { interrupt::PICS.lock().initialize() }; 
     
-
-
-
     // let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset.into_option().unwrap());
     // let mut mapper = unsafe { memory::init(phys_mem_offset) };
     // let mut frame_allocator = unsafe {
