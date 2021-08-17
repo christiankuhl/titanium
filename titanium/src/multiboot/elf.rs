@@ -51,7 +51,7 @@ pub struct ElfSectionTagHeader {
 }
 
 #[derive(Clone, Copy, Debug)]
-#[repr(C, packed)]
+#[repr(C)]
 pub struct ElfSectionHeader {
     pub name_index: u32,
     pub section_type: u32,

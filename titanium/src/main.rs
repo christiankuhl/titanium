@@ -19,7 +19,7 @@ use core::panic::PanicInfo;
 
 mod multiboot;
 mod drivers;
-mod vga_buffer;
+mod shell;
 mod interrupt;
 mod gdt;
 mod memory;
@@ -32,29 +32,13 @@ mod serial;
 pub extern "C" fn kernel_main(multiboot_info: &multiboot::MultibootInfo) -> ! {
     debugprintln!("Entering Rust kernel...");
 
-    debugprintln!("\nBootloader left us the following memory areas:");
-    for region in multiboot_info.memory_map().iter() {
-        debugprintln!("start: 0x{:0x}, length: {:}", region.base_addr, region.length);
-    }
-
-    debugprintln!("\nKernel sections:");
-    for (idx, section) in multiboot_info.elf_sections().enumerate() {
-        debugprintln!("    [{}] {} addr: 0x{:0x}, size: {:0x}, flags: 0x{:0x}", idx, section.name(), section.addr, section.size, section.flags);
-    }
-
-    debugprintln!("\nStart of kernel: 0x{:x}", multiboot_info.kernel_start());
-    debugprintln!("End of kernel: 0x{:x}", multiboot_info.kernel_end());
-    debugprintln!("Start of multiboot info section: 0x{:x}", multiboot_info.multiboot_start());
-    debugprintln!("End of multiboot info section: 0x{:x}", multiboot_info.multiboot_end());
+    debugprintln!("\nConfiguring physical memory...");
+    memory::init(multiboot_info);
     
     debugprintln!("\nInitialising global descriptor table...");
     gdt::init();
-    
-    debugprintln!("\nInitialising interrupt descriptor table...");
-    interrupt::init_idt();
-    
-    debugprintln!("\nInitialising interrupt controller...");
-    unsafe { interrupt::PICS.lock().initialize() }; 
+
+    interrupt::init();
     
     // let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset.into_option().unwrap());
     // let mut mapper = unsafe { memory::init(phys_mem_offset) };

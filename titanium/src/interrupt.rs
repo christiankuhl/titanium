@@ -9,11 +9,12 @@ use pc_keyboard::{layouts, DecodedKey, HandleControl, Keyboard, ScancodeSet1};
 use spin;
 // use crate::multitasking::CPUState;
 use crate::{
+    debugprintln,
     println, print, gdt, hlt_loop, 
     drivers::mouse::{
         Mouse, init_mouse, MouseEvent
     },
-    vga_buffer::WRITER,
+    shell::vga_buffer::WRITER,
     // multitasking::TASKMANAGER,
 };
 
@@ -68,7 +69,7 @@ lazy_static! {
     static ref MOUSE: spin::Mutex<Mouse> = spin::Mutex::new(Mouse::new());
 }
 
-pub fn init_idt() {
+fn init_idt() {
     IDT.load();
     init_mouse();
 }
@@ -166,3 +167,12 @@ extern "x86-interrupt" fn page_fault_handler(stack_frame: InterruptStackFrame, e
 //     // invoke a breakpoint exception
 //     x86_64::instructions::interrupts::int3();
 // }
+
+
+pub fn init() {
+    debugprintln!("\nInitialising interrupt descriptor table...");
+    init_idt();
+    
+    debugprintln!("\nInitialising interrupt controller...");
+    unsafe { PICS.lock().initialize() }; 
+}

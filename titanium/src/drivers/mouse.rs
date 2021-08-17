@@ -1,6 +1,6 @@
 use x86_64::instructions::port::Port;
 
-use crate::vga_buffer::WRITER;
+use crate::shell::vga_buffer::WRITER;
 
 pub struct Mouse {
     buffer: [i8; 3],

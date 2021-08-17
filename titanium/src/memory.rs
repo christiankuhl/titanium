@@ -1,3 +1,5 @@
+use crate::{debugprintln, multiboot::MultibootInfo};
+
 pub const PAGE_SIZE: usize = 4096;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -62,3 +64,25 @@ pub trait FrameAllocator {
 
 //     &mut *page_table_ptr // unsafe
 // }
+
+
+pub fn init(multiboot_info: &MultibootInfo) {
+    debugprintln!("\nBootloader left us the following memory areas:");
+    for region in multiboot_info.memory_map().iter() {
+        debugprintln!("start: 0x{:0x}, length: {:}", region.base_addr, region.length);
+    }
+
+    debugprintln!("\nKernel sections:");
+    for (idx, section) in multiboot_info.elf_sections().enumerate() {
+        let mut name = section.name();
+        if name.len() > 30 {
+            name = &name[..30];
+        }
+        debugprintln!("    [{}] {} addr: 0x{:0x}, size: {:0x}, flags: 0x{:0x}", idx, name, section.addr, section.size, section.flags);
+    }
+
+    debugprintln!("\nStart of kernel: 0x{:x}", multiboot_info.kernel_start());
+    debugprintln!("End of kernel: 0x{:x}", multiboot_info.kernel_end());
+    debugprintln!("Start of multiboot info section: 0x{:x}", multiboot_info.multiboot_start());
+    debugprintln!("End of multiboot info section: 0x{:x}", multiboot_info.multiboot_end());
+}
