@@ -72,7 +72,7 @@ pub struct ElfSection {
 
 impl ElfSection {
     fn new(header: ElfSectionHeader, string_ptr: *const u8) -> Self {
-        Self { header: header, string_ptr }
+        Self { header, string_ptr }
     }
 }
 
@@ -87,7 +87,7 @@ impl Deref for ElfSection {
 impl ElfSection {
     pub fn name(&self) -> &str {
         if self.name_index == 0 { return "" }
-        let mut name_ptr = unsafe { self.string_ptr.offset(self.name_index as isize) };
+        let name_ptr = unsafe { self.string_ptr.offset(self.name_index as isize) };
         let strlen = {
             let mut len = 0;
             while unsafe { *name_ptr.offset(len) } != 0 {

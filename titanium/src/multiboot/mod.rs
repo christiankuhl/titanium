@@ -1,7 +1,7 @@
 use core::convert::TryInto;
 
-mod memory_map;
-mod elf;
+pub mod memory_map;
+pub mod elf;
 
 use memory_map::*;
 use elf::*;

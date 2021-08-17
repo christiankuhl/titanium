@@ -10,25 +10,42 @@ fn main() {
         println!("Error: {}", err);
         process::exit(1);
     });
+    let profile = if config.debug { "debug" } else { "release" };
     if config.build {
-        Command::new("cargo").arg("kbuild").status().unwrap();
+        let mut cargo = Command::new("cargo");
+        let build_cmd = if config.debug { 
+            cargo.arg("kbuild")
+        } else {
+            cargo.arg("kbuild").arg("--release")
+        };
+        build_cmd.status().expect("Build failed!");
         Command::new("mkdir").arg("iso").status().unwrap();
         Command::new("mkdir").arg("iso/boot").status().unwrap();
         Command::new("mkdir").arg("iso/boot/grub").status().unwrap();
-        Command::new("cp").arg("target/x86_64-titanium/release/titanium").arg("iso/boot/titanium.bin").status().unwrap();
+        Command::new("cp").arg(format!("target/x86_64-titanium/{}/titanium", profile)).arg("iso/boot/titanium.bin").status().unwrap();
         let mut cfg = File::create("iso/boot/grub/grub.cfg").expect("Failed to create grub.cfg");
         cfg.write_all(b"set timeout=0\nset default=0\n\nmenuentry \"Titanium OS\" {\nmultiboot2 /boot/titanium.bin\nboot\n}").unwrap();
         Command::new("grub-mkrescue").arg("--output=mykernel.iso").arg("iso").status().unwrap();
         Command::new("rm").arg("-rf").arg("iso").status().unwrap();
     }
     if config.run {
-        Command::new("qemu-system-x86_64").arg("--cdrom").arg("mykernel.iso").status().unwrap();
+        let mut qemu = Command::new("qemu-system-x86_64");
+        if !config.debug {
+            qemu.arg("--cdrom").arg("mykernel.iso")
+                .arg("-m").arg("1G").status().unwrap();
+        } else {
+            qemu.arg("--cdrom").arg("mykernel.iso")
+                .arg("-m").arg("1G").arg("-s").arg("-S")
+                .status().unwrap();
+        }
+        
     }
 }
 
 struct Config {
     run: bool,
     build: bool,
+    debug: bool,
 }
 
 impl Config {
@@ -36,18 +53,18 @@ impl Config {
         if args.len() < 3 {
             return Err("Not enough arguments!".to_string())
         }
-        let mut config = Config { run: false, build: false };
+        let mut config = Config { run: false, build: false, debug: false };
         match args[2].to_lowercase().as_str() {
             "build" => {
                 config.build = true;
-                return Ok(config)
             }
             "run" => {
                 config.build = true;
                 config.run = true;
-                return Ok(config)
             }
             arg => return Err(format!("Unknown argument: {}", arg.clone()))
         }
+        config.debug = args.iter().any(|arg| arg.to_lowercase() == "--debug");
+        Ok(config)
     }
 }

@@ -7,10 +7,12 @@ struct MemoryMapHeaderTag {
     entry_version: u32,
 }
 
+#[derive(Clone, Copy)]
 pub struct MemoryMap {
     header: *const MemoryMapHeaderTag,
 }
 
+#[derive(Clone, Copy)]
 pub struct MemoryMapIter {
     header: *const MemoryMapHeaderTag,
     current: *const MemoryRegion,
@@ -35,18 +37,18 @@ pub struct MemoryRegion {
 }
 
 impl MemoryRegion {
-    fn usable(&self) -> bool {
+    pub fn usable(&self) -> bool {
         self.region_type == 1
     }
 }
 
 impl Iterator for MemoryMapIter {
-    type Item = MemoryRegion; 
-    fn next(&mut self) -> Option<MemoryRegion> { 
+    type Item = &'static MemoryRegion; 
+    fn next(&mut self) -> Option<Self::Item> { 
         let header = unsafe { *self.header };
         if self.current as usize + header.entry_size as usize <= self.header as usize + header.size as usize {
             unsafe { self.current = self.current.offset(1); 
-                return Some(*self.current)
+                return Some(&*self.current)
             }
         } 
         None
