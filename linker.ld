@@ -6,42 +6,61 @@ ENTRY(_start)
    kernel image. */
 SECTIONS
 {
-	/* Begin putting sections at 1 MiB, a conventional place for kernels to be
-	   loaded at by the bootloader. */
 	. = 1M;
  
-	/* First put the multiboot header, as it is required to be put very early
-	   early in the image or the bootloader won't recognize the file format.
-	   Next we'll put the .text section. */
+	.rodata : ALIGN(4K)
+	{
+		/* ensure that the multiboot header is at the beginning */
+		KEEP(*(.multiboot))
+		*(.rodata .rodata.*)
+		. = ALIGN(4K);
+	}
+
 	.text : ALIGN(4K)
 	{
-		KEEP(*(.multiboot))
 		*(.text .text.*)
+		. = ALIGN(4K);
 	}
  
 	/* Read-only data. */
 	.rodata : ALIGN(4K)
 	{
 		*(.rodata .rodata.*)
+		. = ALIGN(4K);
 	}
  
-	/* Read-write data (initialized) */
+	.data.rel.ro : ALIGN(4K) {
+        *(.data.rel.ro.local*) *(.data.rel.ro .data.rel.ro.*)
+		. = ALIGN(4K);
+    }
+
 	.data : ALIGN(4K)
 	{
-		*(.data)
+		*(.data .data.*)
+		. = ALIGN(4K);
 	}
- 
-	.data.rel.ro : {
-        *(.data.rel.ro.local*) *(.data.rel.ro .data.rel.ro.*)
-    }
 
 	/* Read-write data (uninitialized) and stack */
 	.bss  : ALIGN(4K)
 	{
 		*(.bss)
 		*(COMMON)
+		. = ALIGN(4K);
 	}
- 
-	/* The compiler may produce other sections, by default it will put them in
-	   a segment with the same name. Simply add stuff here as needed. */
+
+	.bss.add  : ALIGN(4K)
+	{
+		*(.bss.*)
+		. = ALIGN(4K);
+	}
+
+	.eh_frame_hdr : ALIGN(4K) {
+		*(.eh_frame_hdr)
+		. = ALIGN(4K);
+	}
+
+	.eh_frame : ALIGN(4K) {
+		*(.eh_frame)
+		. = ALIGN(4K);
+	}
 }

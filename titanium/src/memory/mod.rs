@@ -1,10 +1,10 @@
-use crate::{debugprintln, multiboot::MultibootInfo};
+use crate::{asm_wrappers::{enable_nxe_bit, enable_write_protect_bit}, debugprintln, memory::paging::remap_kernel, multiboot::MultibootInfo};
 
 mod region_frame_allocator;
 mod paging;
 
 use region_frame_allocator::RegionFrameAllocator;
-pub use self::paging::{PhysAddr, VirtAddr};
+pub use self::paging::{PhysAddr, VirtAddr, Mapper};
 
 pub const PAGE_SIZE: usize = 4096;
 
@@ -20,7 +20,36 @@ impl PhysFrame {
     fn start_address(&self) -> PhysAddr {
         self.number * PAGE_SIZE
     }
+    fn clone(&self) -> Self {
+        Self { number: self.number }
+    }
 }
+
+impl PhysFrame {
+    fn range_inclusive(start: PhysFrame, end: PhysFrame) -> FrameIter {
+        FrameIter { start, end }
+    }
+}
+
+struct FrameIter {
+    start: PhysFrame,
+    end: PhysFrame,
+}
+
+impl Iterator for FrameIter {
+    type Item = PhysFrame;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.start <= self.end {
+            let frame = self.start.clone();
+            self.start.number += 1;
+            Some(frame)
+        } else {
+            None
+        }
+    }
+ }
+
 
 pub trait FrameAllocator {
     fn allocate_frame(&mut self) -> Option<PhysFrame>;
@@ -31,16 +60,7 @@ pub fn init(multiboot_info: &MultibootInfo) {
     debugprintln!("\nBootloader left us the following memory areas:");
     let memory_map = multiboot_info.memory_map();
     for region in memory_map.iter() {
-        debugprintln!("start: 0x{:0x}, length: {:}", region.base_addr, region.length);
-    }
-
-    debugprintln!("\nKernel sections:");
-    for (idx, section) in multiboot_info.elf_sections().enumerate() {
-        let mut name = section.name();
-        if name.len() > 30 {
-            name = &name[..30];
-        }
-        debugprintln!("    [{}] {} addr: 0x{:0x}, size: {:0x}, flags: 0x{:0x}", idx, name, section.addr, section.size, section.flags);
+        debugprintln!("    start: 0x{:0x}, length: {:}", region.base_addr, region.length);
     }
 
     let kernel_start = multiboot_info.kernel_start();
@@ -50,9 +70,15 @@ pub fn init(multiboot_info: &MultibootInfo) {
 
     debugprintln!("\nStart of kernel: 0x{:x}", kernel_start);
     debugprintln!("End of kernel: 0x{:x}", kernel_end);
-    debugprintln!("Start of multiboot info section: 0x{:x}", multiboot_start);
-    debugprintln!("End of multiboot info section: 0x{:x}", multiboot_end);
 
     let mut allocator = RegionFrameAllocator::new(kernel_start, kernel_end, multiboot_start, multiboot_end, memory_map);
-    paging::test_paging(&mut allocator);
+    
+    unsafe {
+        enable_nxe_bit();
+    }
+    debugprintln!("\nIdentity mapping kernel sections:");
+    remap_kernel(&mut allocator, multiboot_info.elf_sections(), multiboot_start, multiboot_end);
+    unsafe {
+        enable_write_protect_bit();
+    }
 }

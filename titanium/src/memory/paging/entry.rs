@@ -1,4 +1,5 @@
-use super::super::PhysFrame;
+use crate::multiboot::elf::ElfSection;
+use super::PhysFrame;
 
 #[derive(Debug)]
 pub struct Entry(u64);
@@ -45,6 +46,7 @@ pub trait Flags {
     const GLOBAL: u64;
     const NO_EXECUTE: u64;
     fn empty() -> Self;
+    fn from_elf_section(section: &ElfSection) -> u64;
 }
 
 impl Flags for EntryFlags {
@@ -59,4 +61,19 @@ impl Flags for EntryFlags {
     const GLOBAL: u64 = 1 << 8;
     const NO_EXECUTE: u64 = 1 << 63;
     fn empty() -> Self { 0 }
+    fn from_elf_section(section: &ElfSection) -> u64 {
+        let mut flags = EntryFlags::empty();
+        if section.is_allocated() {
+            // section is loaded to memory
+            flags = flags | EntryFlags::PRESENT;
+        }
+        if section.is_writable() {
+            flags = flags | EntryFlags::WRITABLE;
+        }
+        if !section.is_executable() {
+            flags = flags | EntryFlags::NO_EXECUTE;
+        }
+        flags
+    }
+
 }

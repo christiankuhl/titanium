@@ -4,6 +4,7 @@
 #![feature(alloc_error_handler)]
 #![feature(const_mut_refs)]
 #![feature(ptr_internals)]
+#![feature(asm)]
 #![macro_use]
 
 // TEMP:
@@ -28,6 +29,7 @@ mod allocator;
 mod pci;
 mod multitasking;
 mod serial;
+mod asm_wrappers;
 
 #[no_mangle]
 pub extern "C" fn kernel_main(multiboot_info: &multiboot::MultibootInfo) -> ! {

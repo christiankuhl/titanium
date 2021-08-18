@@ -19,7 +19,7 @@ impl ElfSections {
         unsafe { (*self.header).num_headers }
     }
 }
-
+//
 impl Iterator for ElfSections {
     type Item = ElfSection;
 
@@ -63,6 +63,18 @@ pub struct ElfSectionHeader {
     pub info: u32,
     pub addralign: u64,
     pub entry_size: u64,
+}
+
+impl ElfSectionHeader {
+    pub fn is_allocated(&self) -> bool {
+        self.flags & 0x2 > 0
+    }
+    pub fn is_writable(&self) -> bool {
+        self.flags & 0x1 > 0
+    }
+    pub fn is_executable(&self) -> bool {
+        self.flags & 0x4 > 0
+    }
 }
 
 pub struct ElfSection {
