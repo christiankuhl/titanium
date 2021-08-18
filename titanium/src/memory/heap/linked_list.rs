@@ -1,6 +1,6 @@
-use super::{Locked, align_up};
+use super::{align_up, Locked};
 use alloc::alloc::{GlobalAlloc, Layout};
-use core::{ptr, mem};
+use core::{mem, ptr};
 
 struct ListNode {
     size: usize,
@@ -27,9 +27,7 @@ pub struct LinkedListAllocator {
 
 impl LinkedListAllocator {
     pub const fn new() -> Self {
-        Self {
-            head: ListNode::new(0),
-        }
+        Self { head: ListNode::new(0) }
     }
 
     pub unsafe fn init(&mut self, heap_start: usize, heap_size: usize) {
@@ -113,12 +111,9 @@ impl LinkedListAllocator {
     }
 
     fn size_align(layout: Layout) -> (usize, usize) {
-        let layout = layout
-            .align_to(mem::align_of::<ListNode>())
-            .expect("adjusting alignment failed")
-            .pad_to_align();
-            let size = layout.size().max(mem::size_of::<ListNode>());
-            (size, layout.align())
+        let layout = layout.align_to(mem::align_of::<ListNode>()).expect("adjusting alignment failed").pad_to_align();
+        let size = layout.size().max(mem::size_of::<ListNode>());
+        (size, layout.align())
     }
 }
 
@@ -127,7 +122,7 @@ unsafe impl GlobalAlloc for Locked<LinkedListAllocator> {
         // perform layout adjustments
         let (size, align) = LinkedListAllocator::size_align(layout);
         let mut allocator = self.lock();
-        
+
         if let Some((region, alloc_start)) = allocator.find_region(size, align) {
             let alloc_end = alloc_start.checked_add(size).expect("overflow");
             let excess_size = region.end_addr() - alloc_end;

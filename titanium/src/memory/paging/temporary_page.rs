@@ -1,4 +1,4 @@
-use super::{ActivePageTable, VirtAddr, PhysFrame, Page, EntryFlags, Flags, FrameAllocator, Table, table::Level1};
+use super::{table::Level1, ActivePageTable, EntryFlags, Flags, FrameAllocator, Page, PhysFrame, Table, VirtAddr};
 
 pub struct TemporaryPage {
     page: Page,
@@ -7,7 +7,8 @@ pub struct TemporaryPage {
 
 impl TemporaryPage {
     pub fn new<A>(page: Page, allocator: &mut A) -> Self
-        where A: FrameAllocator
+    where
+        A: FrameAllocator,
     {
         Self { page, allocator: TinyAllocator::new(allocator) }
     }
@@ -54,8 +55,9 @@ impl FrameAllocator for TinyAllocator {
 }
 
 impl TinyAllocator {
-    fn new<A>(allocator: &mut A) -> TinyAllocator 
-        where A: FrameAllocator 
+    fn new<A>(allocator: &mut A) -> TinyAllocator
+    where
+        A: FrameAllocator,
     {
         let mut f = || allocator.allocate_frame();
         let frames = [f(), f(), f()];

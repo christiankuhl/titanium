@@ -1,9 +1,8 @@
 use core::ops::Deref;
-use core::{str, slice};
+use core::{slice, str};
 
-use crate::println;
 use crate::debugprintln;
-
+use crate::println;
 
 pub struct ElfSections {
     header: *const ElfSectionTagHeader,
@@ -30,13 +29,14 @@ impl Iterator for ElfSections {
     fn next(&mut self) -> Option<Self::Item> {
         unsafe {
             let header = *self.header;
-            let string_section_ptr = self.offset.offset((header.string_table_index * header.entry_size) as isize) as *const ElfSectionHeader;
+            let string_section_ptr =
+                self.offset.offset((header.string_table_index * header.entry_size) as isize) as *const ElfSectionHeader;
             let string_ptr = (*string_section_ptr).addr as *const u8;
             if self.remaining_sections > 1 {
                 self.remaining_sections -= 1;
-                self.current = self.current.offset(1); 
+                self.current = self.current.offset(1);
                 if (*self.current).section_type != 0 {
-                    return Some(ElfSection::new(*self.current, string_ptr))
+                    return Some(ElfSection::new(*self.current, string_ptr));
                 }
             }
         }
@@ -49,7 +49,7 @@ impl Iterator for ElfSections {
 pub struct ElfSectionTagHeader {
     tag_type: u32,
     size: u32,
-    num_headers: u32,           
+    num_headers: u32,
     entry_size: u32,
     string_table_index: u32,
 }
@@ -91,7 +91,7 @@ impl ElfSection {
     fn new(header: ElfSectionHeader, string_ptr: *const u8) -> Self {
         let mut name_len;
         let name_ptr = unsafe { string_ptr.offset(header.name_index as isize) };
-        if header.name_index == 0 { 
+        if header.name_index == 0 {
             name_len = 0
         } else {
             name_len = {
@@ -116,7 +116,9 @@ impl Deref for ElfSection {
 
 impl ElfSection {
     pub fn name(&self) -> &str {
-        if self.name_len == 0 { return "" }
+        if self.name_len == 0 {
+            return "";
+        }
         str::from_utf8(unsafe { slice::from_raw_parts(self.name_ptr, self.name_len) }).unwrap()
     }
 }

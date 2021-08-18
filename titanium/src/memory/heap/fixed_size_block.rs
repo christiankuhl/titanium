@@ -1,5 +1,5 @@
-use super::{Locked, linked_list::LinkedListAllocator};
-use alloc::alloc::{Layout, GlobalAlloc};
+use super::{linked_list::LinkedListAllocator, Locked};
+use alloc::alloc::{GlobalAlloc, Layout};
 use core::mem;
 
 const BLOCK_SIZES: &[usize] = &[8, 16, 32, 64, 128, 256, 512, 1024, 2048];
@@ -60,13 +60,11 @@ unsafe impl GlobalAlloc for Locked<FixedSizeBlockAllocator> {
         }
     }
 
-    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {        
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         let mut allocator = self.lock();
         match list_index(&layout) {
             Some(index) => {
-                let new_node = ListNode {
-                    next: allocator.list_heads[index].take(),
-                };
+                let new_node = ListNode { next: allocator.list_heads[index].take() };
                 // verify that block has size and alignment required for storing node
                 assert!(mem::size_of::<ListNode>() <= BLOCK_SIZES[index]);
                 assert!(mem::align_of::<ListNode>() <= BLOCK_SIZES[index]);
@@ -74,7 +72,7 @@ unsafe impl GlobalAlloc for Locked<FixedSizeBlockAllocator> {
                 new_node_ptr.write(new_node);
                 allocator.list_heads[index] = Some(&mut *new_node_ptr);
             }
-            None => allocator.fallback_allocator.dealloc(ptr, layout)
+            None => allocator.fallback_allocator.dealloc(ptr, layout),
         }
     }
 }

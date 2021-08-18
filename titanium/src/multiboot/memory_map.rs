@@ -43,17 +43,15 @@ impl MemoryRegion {
 }
 
 impl Iterator for MemoryMapIter {
-    type Item = &'static MemoryRegion; 
-    fn next(&mut self) -> Option<Self::Item> { 
+    type Item = &'static MemoryRegion;
+    fn next(&mut self) -> Option<Self::Item> {
         let header = unsafe { *self.header };
         if self.current as usize + header.entry_size as usize <= self.header as usize + header.size as usize {
-            unsafe { self.current = self.current.offset(1); 
-                return Some(&*self.current)
+            unsafe {
+                self.current = self.current.offset(1);
+                return Some(&*self.current);
             }
-        } 
+        }
         None
     }
 }
-
-
-

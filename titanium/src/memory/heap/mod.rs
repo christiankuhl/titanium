@@ -1,14 +1,16 @@
 use crate::debugprintln;
 
 use self::fixed_size_block::FixedSizeBlockAllocator;
-use super::{paging::{ActivePageTable, Page, EntryFlags, Flags},
-            region_frame_allocator::RegionFrameAllocator};
+use super::{
+    paging::{ActivePageTable, EntryFlags, Flags, Page},
+    region_frame_allocator::RegionFrameAllocator,
+};
 
 pub const HEAP_START: usize = 0x4444_4444_0000;
 pub const HEAP_SIZE: usize = 100 * 1024;
 
-pub mod linked_list;
 pub mod fixed_size_block;
+pub mod linked_list;
 
 #[global_allocator]
 static ALLOCATOR: Locked<FixedSizeBlockAllocator> = Locked::new(FixedSizeBlockAllocator::new());
@@ -19,9 +21,7 @@ pub struct Locked<A> {
 
 impl<A> Locked<A> {
     pub const fn new(inner: A) -> Self {
-        Locked {
-            inner: spin::Mutex::new(inner),
-        }
+        Locked { inner: spin::Mutex::new(inner) }
     }
 
     pub fn lock(&self) -> spin::MutexGuard<A> {

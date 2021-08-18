@@ -3,8 +3,8 @@ use lazy_static::lazy_static;
 
 mod idt;
 
-pub use self::idt::{SegmentSelector, DescriptorTablePointer};
 use self::idt::InterruptDescriptorTable;
+pub use self::idt::{DescriptorTablePointer, SegmentSelector};
 
 lazy_static! {
     static ref IDT: InterruptDescriptorTable = {

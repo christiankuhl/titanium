@@ -1,8 +1,8 @@
 use core::fmt;
+use core::fmt::Write;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use volatile::Volatile;
-use core::fmt::Write;
 use x86_64::instructions::interrupts;
 
 lazy_static! {
@@ -82,20 +82,22 @@ pub struct Writer {
 impl Writer {
     pub fn write_screen_char(&mut self, char: ScreenChar, row: usize, col: usize) {
         if row >= BUFFER_HEIGHT || col >= BUFFER_WIDTH {
-            return
+            return;
         }
         self.buffer.chars[row][col].write(char);
     }
     pub fn invert(&mut self, row: usize, col: usize) {
         if row >= BUFFER_HEIGHT || col >= BUFFER_WIDTH {
-            return
+            return;
         }
         self.buffer.chars[row][col].update(|char| char.invert());
     }
     pub fn write_byte(&mut self, byte: u8) {
         match byte {
             b'\n' => self.new_line(),
-            b'\r' => { self.column_position = 0; }
+            b'\r' => {
+                self.column_position = 0;
+            }
             byte => {
                 if self.column_position >= BUFFER_WIDTH {
                     self.new_line();
@@ -105,10 +107,7 @@ impl Writer {
                 let col = self.column_position;
 
                 let color_code = self.color_code;
-                self.buffer.chars[row][col].write(ScreenChar {
-                    ascii_character: byte,
-                    color_code,
-                });
+                self.buffer.chars[row][col].write(ScreenChar { ascii_character: byte, color_code });
                 self.column_position += 1;
             }
         }
@@ -144,10 +143,7 @@ impl Writer {
 
     /// Clears a row by overwriting it with blank characters.
     fn clear_row(&mut self, row: usize) {
-        let blank = ScreenChar {
-            ascii_character: b' ',
-            color_code: self.color_code,
-        };
+        let blank = ScreenChar { ascii_character: b' ', color_code: self.color_code };
         for col in 0..BUFFER_WIDTH {
             self.buffer.chars[row][col].write(blank);
         }

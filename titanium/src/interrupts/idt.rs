@@ -1,6 +1,9 @@
 use core::mem::size_of;
 
-use crate::{asm_wrappers::{code_segment_selector, load_interrupt_descriptor_table}, println};
+use crate::{
+    asm_wrappers::{code_segment_selector, load_interrupt_descriptor_table},
+    println,
+};
 
 pub type HandlerFunc = extern "C" fn() -> !;
 
@@ -48,7 +51,7 @@ impl EntryOptions {
         options.set_present(true).disable_interrupts(true);
         options
     }
-    fn minimal() -> Self { 
+    fn minimal() -> Self {
         Self(0xe00)
     }
     pub fn set_present(&mut self, present: bool) -> &mut Self {
@@ -120,17 +123,14 @@ impl InterruptDescriptorTable {
     pub fn new() -> Self {
         Self([IDTEntry::missing(); 16])
     }
-    pub fn set_handler(&mut self, entry: u8, handler: HandlerFunc)-> &mut EntryOptions {
+    pub fn set_handler(&mut self, entry: u8, handler: HandlerFunc) -> &mut EntryOptions {
         self.0[entry as usize] = IDTEntry::new(code_segment_selector(), handler);
         &mut self.0[entry as usize].options
     }
     pub fn load(&'static self) {
-        let ptr = DescriptorTablePointer {
-            base: self as *const _ as u64,
-            limit: (size_of::<Self>() - 1) as u16,
-        };
+        let ptr = DescriptorTablePointer { base: self as *const _ as u64, limit: (size_of::<Self>() - 1) as u16 };
         println!("{:?}", &ptr);
-        unsafe { 
+        unsafe {
             load_interrupt_descriptor_table(&ptr);
         };
     }

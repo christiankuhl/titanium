@@ -1,4 +1,4 @@
-use super::{PhysFrame, FrameAllocator, PAGE_SIZE};
+use super::{FrameAllocator, PhysFrame, PAGE_SIZE};
 use crate::multiboot::memory_map::*;
 
 pub struct RegionFrameAllocator {
@@ -14,14 +14,15 @@ pub struct RegionFrameAllocator {
 }
 
 impl RegionFrameAllocator {
-    pub fn new(kernel_start: usize, 
-                kernel_end: usize, 
-                multiboot_start: usize, 
-                multiboot_end: usize, 
-                shstrtab_start: usize,
-                shstrtab_end: usize,
-                memory_map: MemoryMap) -> Self
-    {
+    pub fn new(
+        kernel_start: usize,
+        kernel_end: usize,
+        multiboot_start: usize,
+        multiboot_end: usize,
+        shstrtab_start: usize,
+        shstrtab_end: usize,
+        memory_map: MemoryMap,
+    ) -> Self {
         let mut allocator = Self {
             next_free_frame: PhysFrame::containing_address(0),
             current_region: None,
@@ -36,16 +37,19 @@ impl RegionFrameAllocator {
         allocator.choose_next_region();
         allocator
     }
-    
+
     fn choose_next_region(&mut self) {
-        self.current_region = self.regions.clone()
+        self.current_region = self
+            .regions
+            .clone()
             .filter(|region| region.usable())
             .filter(|region| region.length > PAGE_SIZE)
             .filter(|region| {
                 let address = region.base_addr + region.length - 1;
                 PhysFrame::containing_address(address as usize) >= self.next_free_frame
-            }).min_by_key(|region| region.base_addr);
-    
+            })
+            .min_by_key(|region| region.base_addr);
+
         if let Some(region) = self.current_region {
             let start_frame = PhysFrame::containing_address(region.base_addr as usize);
             if self.next_free_frame < start_frame {
@@ -61,31 +65,25 @@ impl FrameAllocator for RegionFrameAllocator {
             // "Clone" the frame to return it if it's free. PhysFrame doesn't
             // implement Clone, but we can construct an identical frame.
             let frame = PhysFrame { number: self.next_free_frame.number };
-        
+
             // the last frame of the current region
             let current_area_last_frame = {
                 let address = region.base_addr + region.length - 1;
                 PhysFrame::containing_address(address as usize)
             };
-        
+
             if frame > current_area_last_frame {
                 // all frames of current area are used, switch to next region
                 self.choose_next_region();
             } else if frame >= self.kernel_start && frame <= self.kernel_end {
                 // `frame` is used by the kernel
-                self.next_free_frame = PhysFrame {
-                    number: self.kernel_end.number + 1
-                };
+                self.next_free_frame = PhysFrame { number: self.kernel_end.number + 1 };
             } else if frame >= self.multiboot_start && frame <= self.multiboot_end {
                 // `frame` is used by the multiboot information structure
-                self.next_free_frame = PhysFrame {
-                    number: self.multiboot_end.number + 1
-                };
+                self.next_free_frame = PhysFrame { number: self.multiboot_end.number + 1 };
             } else if frame >= self.shstrtab_start && frame <= self.shstrtab_end {
                 // `frame` is used by the multiboot information structure
-                self.next_free_frame = PhysFrame {
-                    number: self.shstrtab_end.number + 1
-                };
+                self.next_free_frame = PhysFrame { number: self.shstrtab_end.number + 1 };
             } else {
                 // frame is unused, increment `next_free_frame` and return it
                 self.next_free_frame.number += 1;

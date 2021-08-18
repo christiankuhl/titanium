@@ -1,14 +1,12 @@
-use core::fmt::Debug;
-use x86_64::{VirtAddr, structures::idt::InterruptStackFrame};
 use alloc::boxed::Box;
+use core::fmt::Debug;
 use lazy_static::lazy_static;
+use x86_64::{structures::idt::InterruptStackFrame, VirtAddr};
 
 use crate::println;
 
 lazy_static! {
-    pub static ref TASKMANAGER: spin::Mutex<TaskManager> = spin::Mutex::new(
-        TaskManager::new()
-    );
+    pub static ref TASKMANAGER: spin::Mutex<TaskManager> = spin::Mutex::new(TaskManager::new());
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -60,7 +58,7 @@ impl Task {
 pub struct TaskManager {
     num_tasks: usize,
     current_task: Option<usize>,
-    tasks: [Option<Task>; 256]
+    tasks: [Option<Task>; 256],
 }
 
 impl TaskManager {
@@ -85,7 +83,7 @@ impl TaskManager {
     pub fn switch_task(&mut self, cpu_state: CPUState) -> CPUState {
         println!("Switch to {:?}", self.current_task);
         if self.num_tasks == 0 {
-            return cpu_state
+            return cpu_state;
         }
         if let Some(mut task) = self.current_task {
             self.tasks[task].as_mut().unwrap().cpu_state = cpu_state;

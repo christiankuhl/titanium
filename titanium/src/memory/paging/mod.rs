@@ -1,18 +1,18 @@
 use core::ops::{Deref, DerefMut};
 
+use super::{FrameAllocator, PhysFrame, PAGE_SIZE};
 use crate::multiboot::elf::ElfSections;
-use crate::{debugprintln, asm_wrappers::Cr3};
-use super::{PAGE_SIZE, PhysFrame, FrameAllocator};
+use crate::{asm_wrappers::Cr3, debugprintln};
 
 mod entry;
+mod mapper;
 mod table;
 mod temporary_page;
-mod mapper;
 
 pub use self::entry::*;
+pub use self::mapper::Mapper;
 use self::table::Table;
 use self::temporary_page::TemporaryPage;
-pub use self::mapper::Mapper;
 
 const ENTRY_COUNT: usize = 512;
 
@@ -21,7 +21,7 @@ pub type VirtAddr = usize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Page {
-   number: usize,
+    number: usize,
 }
 
 impl Page {
@@ -45,7 +45,7 @@ impl Page {
         (self.number >> 0) & 0o777
     }
     pub fn range_inclusive(start: Page, end: Page) -> PageIter {
-        PageIter { start, end } 
+        PageIter { start, end }
     }
 }
 
@@ -92,7 +92,8 @@ impl ActivePageTable {
     }
 
     pub fn with<F>(&mut self, table: &mut InactivePageTable, temporary_page: &mut temporary_page::TemporaryPage, f: F)
-        where F: FnOnce(&mut Mapper)
+    where
+        F: FnOnce(&mut Mapper),
     {
         {
             use x86_64::instructions::tlb;
@@ -111,14 +112,12 @@ impl ActivePageTable {
         temporary_page.unmap(self);
     }
     pub fn switch(&mut self, new_table: InactivePageTable) -> InactivePageTable {
-        let old_table = InactivePageTable {
-            p4_frame: PhysFrame::containing_address(Cr3::p4_address()),
-        };
+        let old_table = InactivePageTable { p4_frame: PhysFrame::containing_address(Cr3::p4_address()) };
         unsafe {
             Cr3::write(new_table.p4_frame.start_address());
         }
         old_table
-    }    
+    }
 }
 
 pub struct InactivePageTable {
@@ -138,16 +137,18 @@ impl InactivePageTable {
     }
 }
 
-pub fn remap_kernel<A>(allocator: &mut A, 
-                        elf_sections: ElfSections, 
-                        multiboot_start: usize, 
-                        multiboot_end: usize,
-                        shstrtab_start: usize, 
-                        shstrtab_end: usize) -> ActivePageTable
-    where A: FrameAllocator
+pub fn remap_kernel<A>(
+    allocator: &mut A,
+    elf_sections: ElfSections,
+    multiboot_start: usize,
+    multiboot_end: usize,
+    shstrtab_start: usize,
+    shstrtab_end: usize,
+) -> ActivePageTable
+where
+    A: FrameAllocator,
 {
-    let mut temporary_page = TemporaryPage::new(Page { number: 0xdeadbeef },
-        allocator);
+    let mut temporary_page = TemporaryPage::new(Page { number: 0xdeadbeef }, allocator);
 
     let mut active_table = unsafe { ActivePageTable::new() };
     let mut new_table = {
@@ -163,26 +164,37 @@ pub fn remap_kernel<A>(allocator: &mut A,
         debugprintln!("    Data start: {:#x}", multiboot_start);
         debugprintln!("    Data end: {:#x}", multiboot_end);
         for frame in PhysFrame::range_inclusive(
-            PhysFrame::containing_address(multiboot_start), 
-            PhysFrame::containing_address(multiboot_end - 1)) {
+            PhysFrame::containing_address(multiboot_start),
+            PhysFrame::containing_address(multiboot_end - 1),
+        ) {
             mapper.identity_map(frame, EntryFlags::PRESENT, allocator);
         }
         debugprintln!("    .shstrtab start: {:#x}", shstrtab_start);
         debugprintln!("    .shstrtab end: {:#x}", shstrtab_end);
         for frame in PhysFrame::range_inclusive(
-            PhysFrame::containing_address(shstrtab_start), 
-            PhysFrame::containing_address(shstrtab_end - 1)) {
+            PhysFrame::containing_address(shstrtab_start),
+            PhysFrame::containing_address(shstrtab_end - 1),
+        ) {
             mapper.identity_map(frame, EntryFlags::PRESENT, allocator);
         }
         debugprintln!("\nIdentity mapping kernel sections...");
         for (idx, section) in elf_sections.enumerate() {
-            if !section.is_allocated() { continue; }
+            if !section.is_allocated() {
+                continue;
+            }
             assert!(section.addr % (PAGE_SIZE as u64) == 0, "Sections need to be page aligned!");
             let mut name = section.name();
             if name.len() > 30 {
                 name = &name[..30];
             }
-            debugprintln!("    [{}] {} addr: 0x{:0x}, size: {:0x}, flags: 0x{:0x}", idx, name, section.addr, section.size, section.flags);
+            debugprintln!(
+                "    [{}] {} addr: 0x{:0x}, size: {:0x}, flags: 0x{:0x}",
+                idx,
+                name,
+                section.addr,
+                section.size,
+                section.flags
+            );
             let flags = EntryFlags::from_elf_section(&section);
             let start_frame = PhysFrame::containing_address(section.addr as usize);
             let end_frame = PhysFrame::containing_address((section.addr + section.size - 1) as usize);

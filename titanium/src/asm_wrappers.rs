@@ -1,5 +1,4 @@
-
-use crate::interrupts::{SegmentSelector, DescriptorTablePointer};
+use crate::interrupts::{DescriptorTablePointer, SegmentSelector};
 
 const EFER: u32 = 0xC000_0080;
 const NXE_BIT: u32 = 1 << 11;
@@ -18,7 +17,7 @@ impl Cr3 {
     }
     #[inline]
     pub fn p4_address() -> usize {
-        Cr3::read() &  0x_000f_ffff_ffff_f000
+        Cr3::read() & 0x_000f_ffff_ffff_f000
     }
     #[inline]
     pub unsafe fn write(value: usize) {
@@ -61,7 +60,9 @@ pub fn idle() -> ! {
 #[inline]
 pub fn code_segment_selector() -> SegmentSelector {
     let segment: u16;
-    unsafe { asm!("mov {}, cs", out(reg) segment, options(nomem, nostack, preserves_flags)); };
+    unsafe {
+        asm!("mov {}, cs", out(reg) segment, options(nomem, nostack, preserves_flags));
+    };
     SegmentSelector(segment)
 }
 

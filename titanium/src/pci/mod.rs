@@ -1,42 +1,36 @@
-use core::{marker::PhantomData, ops::Shr, ops::Shl, ops::BitAnd, ops::BitOr};
+use crate::println;
 use core::mem::size_of;
+use core::{marker::PhantomData, ops::BitAnd, ops::BitOr, ops::Shl, ops::Shr};
 use x86_64::instructions::port::Port;
-use crate::{
-    // drivers::DriverManager, 
-    println};
 
 mod devices;
 mod vendors;
 
 pub struct PCIController {
     ctrl_port: Port<u32>,
-    data_port: Port<u32>
+    data_port: Port<u32>,
 }
 
 impl PCIController {
     pub fn new() -> Self {
-        Self {
-            ctrl_port: Port::new(0xcf8),
-            data_port: Port::new(0xcfc),
-        }
+        Self { ctrl_port: Port::new(0xcf8), data_port: Port::new(0xcfc) }
     }
     fn read(&mut self, bdf: BDF, offset: u8) -> RegisterValue {
-        unsafe { 
+        unsafe {
             self.ctrl_port.write(bdf.id(offset));
             RegisterValue(self.data_port.read() >> (8 * (offset % 4)))
         }
     }
     fn write(&mut self, bdf: BDF, offset: u8, value: RegisterValue) {
-        unsafe { 
+        unsafe {
             self.ctrl_port.write(bdf.id(offset));
             self.data_port.write(value.into());
         }
     }
 
     pub fn enumerate(&mut self) {
-        let host_device = PCIDevice::new(self, BDF { bus: 0, device: 0, function: 0 }).unwrap_or_else(||
-            panic!("No PCI host device found!")
-        );
+        let host_device =
+            PCIDevice::new(self, BDF { bus: 0, device: 0, function: 0 }).unwrap_or_else(|| panic!("No PCI host device found!"));
         if !host_device.common().multifunction {
             self.enumerate_bus(0)
         } else {
@@ -92,12 +86,17 @@ impl PCIController {
                 println!("{}", devices::description(class_id, subclass_id, 0));
                 let secondary_bus = bridge.secondary_bus.read(self);
                 self.enumerate_bus(secondary_bus);
-            },
+            }
             _ => {
                 let vendor_id = pcidevice.common().vendor_id.read(self);
-                println!("Found {} {} at {:?}", vendors::vendor(vendor_id), devices::description(class_id, subclass_id, 0), pcidevice.bdf());
+                println!(
+                    "Found {} {} at {:?}",
+                    vendors::vendor(vendor_id),
+                    devices::description(class_id, subclass_id, 0),
+                    pcidevice.bdf()
+                );
                 pcidevice.configure(self);
-            },
+            }
         }
     }
 }
@@ -122,7 +121,7 @@ impl MemoryMappedBAR {
         match self.0 % 8 {
             0 => BARSize::Bit32,
             1 => BARSize::Bit20,
-            _ => BARSize::Bit64
+            _ => BARSize::Bit64,
         }
     }
     pub fn mask(&self) -> u64 {
@@ -132,7 +131,7 @@ impl MemoryMappedBAR {
         match self.size() {
             BARSize::Bit20 => (self.0 & 0xfffff0) as usize,
             BARSize::Bit32 => (self.0 & 0xfffff0) as usize,
-            BARSize::Bit64 => ((self.0 & 0xfffff0) | (self.1 << 32)) as usize
+            BARSize::Bit64 => ((self.0 & 0xfffff0) | (self.1 << 32)) as usize,
         }
     }
     pub fn configure(&mut self, bdf: BDF, offset: u8, pci: &mut PCIController) {
@@ -170,7 +169,7 @@ impl BaseAddressRegister {
 }
 
 #[derive(Copy, Clone, Debug)]
-struct BaseAddressRegisters([BaseAddressRegister;6]);
+struct BaseAddressRegisters([BaseAddressRegister; 6]);
 
 impl BaseAddressRegisters {
     pub fn new() -> Self {
@@ -196,14 +195,14 @@ impl BaseAddressRegisters {
             match bar {
                 BaseAddressRegister::IO(_) => {
                     self.0[j as usize] = bar;
-                },
+                }
                 BaseAddressRegister::MemoryMapped(mut b) => {
                     b.configure(bdf, 4 * j + 0x10, pci);
                     self.0[j as usize] = BaseAddressRegister::MemoryMapped(b);
                     if b.size() == BARSize::Bit64 {
                         skip = true;
                     }
-                },
+                }
                 _ => {}
             }
         }
@@ -235,7 +234,6 @@ impl PCIDevice {
             2 => Some(Self::PCICardBus(PCICardBusBridge::new(bdf, common))),
             _ => None,
             // _ => panic!("Unknown PCI header type {:01x}!", (header_type & 0x7f0000) >> 16)
-
         }
     }
     pub fn common(&self) -> CommonPCIHeader {
@@ -328,9 +326,13 @@ impl BitOr for RegisterValue {
 }
 
 #[derive(Copy, Clone, Debug)]
-struct Register<T>(u8, BDF,PhantomData<T>);
+struct Register<T>(u8, BDF, PhantomData<T>);
 
-impl<T> Register<T> where RegisterValue: From<T>, RegisterValue: Into<T> {
+impl<T> Register<T>
+where
+    RegisterValue: From<T>,
+    RegisterValue: Into<T>,
+{
     pub fn new(bdf: BDF, offset: u8) -> Self {
         Register(offset, bdf, PhantomData)
     }
@@ -340,8 +342,7 @@ impl<T> Register<T> where RegisterValue: From<T>, RegisterValue: Into<T> {
         let register_value = pci.read(bdf, aligned_offset);
         let shift = 32 - 8 * (self.0 - aligned_offset) as usize - 8 * size_of::<T>();
         let mask = 0xffffffff - ((0x1 << (32 - 8 * (self.0 - aligned_offset))) - 1) + ((0x1 << shift) - 1);
-        let write_value = register_value & RegisterValue(mask)
-                         | RegisterValue::from(value) << RegisterValue(shift as u32);
+        let write_value = register_value & RegisterValue(mask) | RegisterValue::from(value) << RegisterValue(shift as u32);
         pci.write(bdf, self.0, write_value);
     }
     pub fn read(&self, pci: &mut PCIController) -> T {
@@ -470,7 +471,7 @@ impl PCIBridge {
             expansion_base: Register::new(bdf, 0x38),
             bridge_ctrl: Register::new(bdf, 0x3c),
             interrupt_pin: Register::new(bdf, 0x3e),
-            interrupt_line: Register::new(bdf, 0x3f),            
+            interrupt_line: Register::new(bdf, 0x3f),
         }
     }
     pub fn configure(&mut self, pci: &mut PCIController) {
@@ -537,7 +538,10 @@ struct BDF {
 
 impl BDF {
     pub fn id(&self, offset: u8) -> u32 {
-        0x1 << 31 | (((self.bus & 0xff) as u32) << 16) | (((self.device & 0x1f) as u32) << 11)
-                        | (((self.function & 0x7) as u32) << 8) | ((offset & 0xfc) as u32)
+        0x1 << 31
+            | (((self.bus & 0xff) as u32) << 16)
+            | (((self.device & 0x1f) as u32) << 11)
+            | (((self.function & 0x7) as u32) << 8)
+            | ((offset & 0xfc) as u32)
     }
 }

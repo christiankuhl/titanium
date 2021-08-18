@@ -7,7 +7,7 @@ pub fn description(class_id: u8, subclass_id: u8, _prog_if: u8) -> &'static str 
                 0x01 => "VGA-Compatible Unclassified Device",
                 _ => "Unspecified",
             }
-        },
+        }
         0x01 => {
             "Mass Storage Controller";
             match subclass_id {
@@ -23,7 +23,7 @@ pub fn description(class_id: u8, subclass_id: u8, _prog_if: u8) -> &'static str 
                 0x80 => "Other Mass Storage Controller",
                 _ => "Unspecified",
             }
-        },
+        }
         0x02 => {
             "Network Controller";
             match subclass_id {
@@ -39,7 +39,7 @@ pub fn description(class_id: u8, subclass_id: u8, _prog_if: u8) -> &'static str 
                 0x80 => "Other Network Controller",
                 _ => "Unspecified",
             }
-        },
+        }
         0x03 => {
             "Display Controller";
             match subclass_id {
@@ -49,7 +49,7 @@ pub fn description(class_id: u8, subclass_id: u8, _prog_if: u8) -> &'static str 
                 0x80 => "Other Display Controller",
                 _ => "Unspecified",
             }
-        },
+        }
         0x04 => {
             "Multimedia Controller";
             match subclass_id {
@@ -60,7 +60,7 @@ pub fn description(class_id: u8, subclass_id: u8, _prog_if: u8) -> &'static str 
                 0x80 => "Other Multimedia Controller",
                 _ => "Unspecified",
             }
-        },
+        }
         0x05 => {
             "Memory Controller";
             match subclass_id {
@@ -69,7 +69,7 @@ pub fn description(class_id: u8, subclass_id: u8, _prog_if: u8) -> &'static str 
                 0x80 => "Other Memory Controller",
                 _ => "Unspecified",
             }
-        },
+        }
         0x06 => {
             "Bridge";
             match subclass_id {
@@ -87,7 +87,7 @@ pub fn description(class_id: u8, subclass_id: u8, _prog_if: u8) -> &'static str 
                 0x80 => "Other Bridge",
                 _ => "Unspecified",
             }
-        },
+        }
         0x07 => {
             "Simple Communication Controller";
             match subclass_id {
@@ -100,7 +100,7 @@ pub fn description(class_id: u8, subclass_id: u8, _prog_if: u8) -> &'static str 
                 0x80 => "Other Simple Communication Controller",
                 _ => "Unspecified",
             }
-        },
+        }
         0x08 => {
             "Base System Peripheral";
             match subclass_id {
@@ -114,7 +114,7 @@ pub fn description(class_id: u8, subclass_id: u8, _prog_if: u8) -> &'static str 
                 0x80 => "Other Base System Peripheral",
                 _ => "Unspecified",
             }
-        },
+        }
         0x09 => {
             "Input Device Controller";
             match subclass_id {
@@ -126,7 +126,7 @@ pub fn description(class_id: u8, subclass_id: u8, _prog_if: u8) -> &'static str 
                 0x80 => "Other Input Device Controller",
                 _ => "Unspecified",
             }
-        },
+        }
         0x0A => {
             "Docking Station";
             match subclass_id {
@@ -134,7 +134,7 @@ pub fn description(class_id: u8, subclass_id: u8, _prog_if: u8) -> &'static str 
                 0x80 => "Other Docking Station",
                 _ => "Unspecified",
             }
-        },
+        }
         0x0B => {
             "Processor";
             match subclass_id {
@@ -149,7 +149,7 @@ pub fn description(class_id: u8, subclass_id: u8, _prog_if: u8) -> &'static str 
                 0x80 => "Other Processor",
                 _ => "Unspecified",
             }
-        },
+        }
         0x0C => {
             "Serial Bus Controller";
             match subclass_id {
@@ -166,7 +166,7 @@ pub fn description(class_id: u8, subclass_id: u8, _prog_if: u8) -> &'static str 
                 0x80 => "Other Serial Bus Controller",
                 _ => "Unspecified",
             }
-        },
+        }
         0x0D => {
             "Wireless Controller";
             match subclass_id {
@@ -180,14 +180,14 @@ pub fn description(class_id: u8, subclass_id: u8, _prog_if: u8) -> &'static str 
                 0x80 => "Other Wireless Controller",
                 _ => "Unspecified",
             }
-        },
+        }
         0x0E => {
             "Intelligent Controller";
             match subclass_id {
                 0x00 => "I20",
                 _ => "Unspecified",
             }
-        },
+        }
         0x0F => {
             "Satellite Communication Controller";
             match subclass_id {
@@ -197,7 +197,7 @@ pub fn description(class_id: u8, subclass_id: u8, _prog_if: u8) -> &'static str 
                 0x04 => "Satellite Data Controller",
                 _ => "Unspecified",
             }
-        },
+        }
         0x10 => {
             "Encryption Controller";
             match subclass_id {
@@ -206,7 +206,7 @@ pub fn description(class_id: u8, subclass_id: u8, _prog_if: u8) -> &'static str 
                 0x80 => "Other Encryption Controller",
                 _ => "Unspecified",
             }
-        },
+        }
         0x11 => {
             "Signal Processing Controller";
             match subclass_id {
@@ -217,19 +217,11 @@ pub fn description(class_id: u8, subclass_id: u8, _prog_if: u8) -> &'static str 
                 0x80 => "Other Signal Processing Controller",
                 _ => "Unspecified",
             }
-        },
-        0x12 => {
-            "Processing Accelerator"
-        },
-        0x13 => {
-            "Non-Essential Instrumentation"
-        },
-        0x40 => {
-            "Co-Processor"
-        },
-        0xFF => {
-            "Unassigned Class (Vendor specific)"
-        },
-        _ => "Reserved"
+        }
+        0x12 => "Processing Accelerator",
+        0x13 => "Non-Essential Instrumentation",
+        0x40 => "Co-Processor",
+        0xFF => "Unassigned Class (Vendor specific)",
+        _ => "Reserved",
     }
 }

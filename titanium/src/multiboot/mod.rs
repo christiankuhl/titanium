@@ -1,10 +1,10 @@
 use core::convert::TryInto;
 
-pub mod memory_map;
 pub mod elf;
+pub mod memory_map;
 
-use memory_map::*;
 use elf::*;
+use memory_map::*;
 
 pub struct MultibootInfo {
     total_size: u32,
@@ -21,12 +21,10 @@ impl MultibootInfo {
         ElfSections::new(addr)
     }
     pub fn kernel_start(&self) -> usize {
-        self.elf_sections().filter(|s| s.is_allocated())
-            .map(|s| s.addr).min().unwrap().try_into().unwrap()
+        self.elf_sections().filter(|s| s.is_allocated()).map(|s| s.addr).min().unwrap().try_into().unwrap()
     }
     pub fn kernel_end(&self) -> usize {
-        self.elf_sections().filter(|s| s.is_allocated())
-            .map(|s| s.addr + s.size).max().unwrap().try_into().unwrap()
+        self.elf_sections().filter(|s| s.is_allocated()).map(|s| s.addr + s.size).max().unwrap().try_into().unwrap()
     }
     pub fn multiboot_start(&self) -> usize {
         self.ptr()
@@ -48,7 +46,7 @@ impl MultibootInfo {
         while addr < self.ptr() + self.total_size as usize {
             let tag = unsafe { &*(addr as *const Tag) };
             if tag.tag_type == tag_type {
-                return Some(addr)
+                return Some(addr);
             }
             addr += ((tag.size + 7) & !7) as usize;
         }

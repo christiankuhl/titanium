@@ -1,19 +1,20 @@
 use lazy_static::lazy_static;
 // use volatile::Volatile;
-use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode};
+use pc_keyboard::{layouts, DecodedKey, HandleControl, Keyboard, ScancodeSet1};
+use pic8259::ChainedPics;
+use spin;
+use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::instructions::port::Port;
 use x86_64::registers::control::Cr2;
-use x86_64::instructions::interrupts::without_interrupts;
-use pic8259::ChainedPics;
-use pc_keyboard::{layouts, DecodedKey, HandleControl, Keyboard, ScancodeSet1};
-use spin;
+use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode};
 // use crate::multitasking::CPUState;
 use crate::{
     debugprintln,
-    println, print, gdt, idle, 
-    drivers::mouse::{
-        Mouse, init_mouse, MouseEvent
-    },
+    drivers::mouse::{init_mouse, Mouse, MouseEvent},
+    gdt,
+    idle,
+    print,
+    println,
     shell::vga_buffer::WRITER,
     // multitasking::TASKMANAGER,
 };
@@ -45,16 +46,12 @@ lazy_static! {
         idt.divide_error.set_handler_fn(divide_by_zero_handler);
         idt.breakpoint.set_handler_fn(breakpoint_handler);
         unsafe {
-            idt.double_fault.set_handler_fn(double_fault_handler)
-                .set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX);
+            idt.double_fault.set_handler_fn(double_fault_handler).set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX);
         }
         idt.page_fault.set_handler_fn(page_fault_handler);
-        idt[InterruptIndex::Timer.as_usize()]
-            .set_handler_fn(timer_interrupt_handler);
-        idt[InterruptIndex::Keyboard.as_usize()]
-            .set_handler_fn(keyboard_interrupt_handler);
-        idt[InterruptIndex::Mouse.as_usize()]
-            .set_handler_fn(mouse_interrupt_handler);
+        idt[InterruptIndex::Timer.as_usize()].set_handler_fn(timer_interrupt_handler);
+        idt[InterruptIndex::Keyboard.as_usize()].set_handler_fn(keyboard_interrupt_handler);
+        idt[InterruptIndex::Mouse.as_usize()].set_handler_fn(mouse_interrupt_handler);
         idt
     };
 }
@@ -66,9 +63,7 @@ extern "x86-interrupt" fn divide_by_zero_handler(s: InterruptStackFrame) {
 
 lazy_static! {
     static ref KEYBOARD: spin::Mutex<Keyboard<layouts::Us104Key, ScancodeSet1>> =
-        spin::Mutex::new(Keyboard::new(layouts::Us104Key, ScancodeSet1,
-            HandleControl::Ignore)
-        );
+        spin::Mutex::new(Keyboard::new(layouts::Us104Key, ScancodeSet1, HandleControl::Ignore));
 }
 
 lazy_static! {
@@ -80,8 +75,7 @@ fn init_idt() {
     init_mouse();
 }
 
-pub static PICS: spin::Mutex<ChainedPics> =
-    spin::Mutex::new(unsafe { ChainedPics::new(PIC_1_OFFSET, PIC_2_OFFSET) });
+pub static PICS: spin::Mutex<ChainedPics> = spin::Mutex::new(unsafe { ChainedPics::new(PIC_1_OFFSET, PIC_2_OFFSET) });
 
 extern "x86-interrupt" fn breakpoint_handler(stack_frame: InterruptStackFrame) {
     println!("EXCEPTION: BREAKPOINT\n{:#?}", stack_frame);
@@ -100,8 +94,7 @@ extern "x86-interrupt" fn timer_interrupt_handler(mut stack_frame: InterruptStac
         // stack_frame.as_mut().extract_inner().cpu_flags = new_stack.cpu_flags;
         // stack_frame.as_mut().extract_inner().stack_pointer = new_stack.stack_pointer;
         // stack_frame.as_mut().extract_inner().stack_segment = new_stack.stack_segment;
-        PICS.lock()
-            .notify_end_of_interrupt(InterruptIndex::Timer.as_u8());
+        PICS.lock().notify_end_of_interrupt(InterruptIndex::Timer.as_u8());
     }
 }
 
@@ -119,8 +112,7 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStac
     }
 
     unsafe {
-        PICS.lock()
-            .notify_end_of_interrupt(InterruptIndex::Keyboard.as_u8());
+        PICS.lock().notify_end_of_interrupt(InterruptIndex::Keyboard.as_u8());
     }
 }
 
@@ -134,17 +126,12 @@ extern "x86-interrupt" fn mouse_interrupt_handler(_stack_frame: InterruptStackFr
     mouse.add_byte(data as i8);
     if let Some(event) = mouse.event() {
         match event {
-            MouseEvent::Move(dx, dy) => {
-                without_interrupts(|| {
-                    unsafe { move_mouse_cursor(dx, dy) }
-                })
-            }
+            MouseEvent::Move(dx, dy) => without_interrupts(|| unsafe { move_mouse_cursor(dx, dy) }),
             _ => {}
         }
     }
     unsafe {
-        PICS.lock()
-            .notify_end_of_interrupt(InterruptIndex::Mouse.as_u8());
+        PICS.lock().notify_end_of_interrupt(InterruptIndex::Mouse.as_u8());
     }
 }
 
@@ -152,11 +139,19 @@ unsafe fn move_mouse_cursor(dx: i8, dy: i8) {
     let mut screen = WRITER.lock();
     screen.invert(MOUSE_Y as usize, MOUSE_X as usize);
     MOUSE_X += dx / 2;
-    if MOUSE_X < 0 { MOUSE_X = 0 };
-    if MOUSE_X >= 80 { MOUSE_X = 79 };
+    if MOUSE_X < 0 {
+        MOUSE_X = 0
+    };
+    if MOUSE_X >= 80 {
+        MOUSE_X = 79
+    };
     MOUSE_Y -= dy / 2;
-    if MOUSE_Y < 0 { MOUSE_Y = 0 };
-    if MOUSE_Y >= 25 { MOUSE_Y = 24 };
+    if MOUSE_Y < 0 {
+        MOUSE_Y = 0
+    };
+    if MOUSE_Y >= 25 {
+        MOUSE_Y = 24
+    };
     screen.invert(MOUSE_Y as usize, MOUSE_X as usize);
 }
 
@@ -174,11 +169,10 @@ extern "x86-interrupt" fn page_fault_handler(stack_frame: InterruptStackFrame, e
 //     x86_64::instructions::interrupts::int3();
 // }
 
-
 pub fn init() {
     debugprintln!("\nInitialising interrupt descriptor table...");
     init_idt();
-    
+
     debugprintln!("\nInitialising interrupt controller...");
-    unsafe { PICS.lock().initialize() }; 
+    unsafe { PICS.lock().initialize() };
 }

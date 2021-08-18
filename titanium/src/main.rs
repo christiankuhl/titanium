@@ -6,7 +6,6 @@
 #![feature(ptr_internals)]
 #![feature(asm)]
 #![macro_use]
-
 // TEMP:
 #![allow(dead_code)]
 
@@ -14,17 +13,17 @@ extern crate alloc;
 
 use core::panic::PanicInfo;
 
-mod multiboot;
-mod drivers;
-mod shell;
-mod interrupts;
-mod interrupt;
-mod gdt;
-mod memory;
-mod pci;
-mod multitasking;
-mod serial;
 mod asm_wrappers;
+mod drivers;
+mod gdt;
+mod interrupt;
+mod interrupts;
+mod memory;
+mod multiboot;
+mod multitasking;
+mod pci;
+mod serial;
+mod shell;
 
 use asm_wrappers::idle;
 
@@ -34,12 +33,12 @@ pub extern "C" fn kernel_main(multiboot_info: &multiboot::MultibootInfo) -> ! {
 
     debugprintln!("\nInitialising global descriptor table...");
     gdt::init();
-    
+
     interrupt::init();
 
     debugprintln!("\nConfiguring physical memory...");
     memory::init(multiboot_info);
-    
+
     // interrupts::init();
     // let ptr: usize = unsafe {
     //     *(0x112f78 as *const usize)

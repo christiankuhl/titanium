@@ -1,5 +1,5 @@
-use crate::multiboot::elf::ElfSection;
 use super::PhysFrame;
+use crate::multiboot::elf::ElfSection;
 
 #[derive(Debug)]
 pub struct Entry(u64);
@@ -19,9 +19,7 @@ impl Entry {
 
     pub fn pointed_frame(&self) -> Option<PhysFrame> {
         if self.flags_set(EntryFlags::PRESENT) {
-            Some(PhysFrame::containing_address(
-                self.0 as usize & 0x000fffff_fffff000
-            ))
+            Some(PhysFrame::containing_address(self.0 as usize & 0x000fffff_fffff000))
         } else {
             None
         }
@@ -60,7 +58,9 @@ impl Flags for EntryFlags {
     const HUGE: u64 = 1 << 7;
     const GLOBAL: u64 = 1 << 8;
     const NO_EXECUTE: u64 = 1 << 63;
-    fn empty() -> Self { 0 }
+    fn empty() -> Self {
+        0
+    }
     fn from_elf_section(section: &ElfSection) -> u64 {
         let mut flags = EntryFlags::empty();
         if section.is_allocated() {
@@ -75,5 +75,4 @@ impl Flags for EntryFlags {
         }
         flags
     }
-
 }

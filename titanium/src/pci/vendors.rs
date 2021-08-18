@@ -1,4 +1,4 @@
-pub fn vendor(vendor_id: u16) -> &'static str {    
+pub fn vendor(vendor_id: u16) -> &'static str {
     match vendor_id {
         0x0001 => "SafeNet (wrong ID)",
         0x0010 => "Allied Telesis, Inc (Wrong ID)",
