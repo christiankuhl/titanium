@@ -22,13 +22,6 @@ SECTIONS
 		. = ALIGN(4K);
 	}
  
-	/* Read-only data. */
-	.rodata : ALIGN(4K)
-	{
-		*(.rodata .rodata.*)
-		. = ALIGN(4K);
-	}
- 
 	.data.rel.ro : ALIGN(4K) {
         *(.data.rel.ro.local*) *(.data.rel.ro .data.rel.ro.*)
 		. = ALIGN(4K);
@@ -40,7 +33,6 @@ SECTIONS
 		. = ALIGN(4K);
 	}
 
-	/* Read-write data (uninitialized) and stack */
 	.bss  : ALIGN(4K)
 	{
 		*(.bss)
@@ -63,4 +55,18 @@ SECTIONS
 		*(.eh_frame)
 		. = ALIGN(4K);
 	}
+
+	.symtab : ALIGN(4K) {
+		*(.symtab)
+	}
+
+    .shstrtab : ALIGN(4K) {
+		*(.shstrtab)
+	}
+
+    .strtab : ALIGN(4K) {
+		__shstrtab = .;
+		*(.strtab)
+	}
 }
+

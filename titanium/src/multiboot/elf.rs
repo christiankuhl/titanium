@@ -1,6 +1,10 @@
 use core::ops::Deref;
 use core::{str, slice};
 
+use crate::println;
+use crate::debugprintln;
+
+
 pub struct ElfSections {
     header: *const ElfSectionTagHeader,
     current: *const ElfSectionHeader,
@@ -79,12 +83,26 @@ impl ElfSectionHeader {
 
 pub struct ElfSection {
     header: ElfSectionHeader,
-    string_ptr: *const u8
+    pub name_ptr: *const u8,
+    pub name_len: usize,
 }
 
 impl ElfSection {
     fn new(header: ElfSectionHeader, string_ptr: *const u8) -> Self {
-        Self { header, string_ptr }
+        let mut name_len;
+        let name_ptr = unsafe { string_ptr.offset(header.name_index as isize) };
+        if header.name_index == 0 { 
+            name_len = 0
+        } else {
+            name_len = {
+                let mut len = 0;
+                while unsafe { *name_ptr.offset(len) } != 0 {
+                    len += 1
+                }
+                len as usize
+            };
+        }
+        Self { header, name_ptr, name_len }
     }
 }
 
@@ -98,15 +116,7 @@ impl Deref for ElfSection {
 
 impl ElfSection {
     pub fn name(&self) -> &str {
-        if self.name_index == 0 { return "" }
-        let name_ptr = unsafe { self.string_ptr.offset(self.name_index as isize) };
-        let strlen = {
-            let mut len = 0;
-            while unsafe { *name_ptr.offset(len) } != 0 {
-                len += 1
-            }
-            len as usize
-        };
-        str::from_utf8(unsafe { slice::from_raw_parts(name_ptr, strlen) }).unwrap()
+        if self.name_len == 0 { return "" }
+        str::from_utf8(unsafe { slice::from_raw_parts(self.name_ptr, self.name_len) }).unwrap()
     }
 }

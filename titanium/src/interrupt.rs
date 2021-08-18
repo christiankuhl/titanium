@@ -10,7 +10,7 @@ use spin;
 // use crate::multitasking::CPUState;
 use crate::{
     debugprintln,
-    println, print, gdt, hlt_loop, 
+    println, print, gdt, idle, 
     drivers::mouse::{
         Mouse, init_mouse, MouseEvent
     },
@@ -42,6 +42,7 @@ impl InterruptIndex {
 lazy_static! {
     static ref IDT: InterruptDescriptorTable = {
         let mut idt = InterruptDescriptorTable::new();
+        idt.divide_error.set_handler_fn(divide_by_zero_handler);
         idt.breakpoint.set_handler_fn(breakpoint_handler);
         unsafe {
             idt.double_fault.set_handler_fn(double_fault_handler)
@@ -56,6 +57,11 @@ lazy_static! {
             .set_handler_fn(mouse_interrupt_handler);
         idt
     };
+}
+
+extern "x86-interrupt" fn divide_by_zero_handler(s: InterruptStackFrame) {
+    println!("EXCEPTION: DIVIDE BY ZERO");
+    loop {}
 }
 
 lazy_static! {
@@ -159,7 +165,7 @@ extern "x86-interrupt" fn page_fault_handler(stack_frame: InterruptStackFrame, e
     println!("Accessed Address: {:?}", Cr2::read());
     println!("Error Code: {:?}", error_code);
     println!("{:#?}", stack_frame);
-    hlt_loop();
+    idle();
 }
 
 // #[test_case]

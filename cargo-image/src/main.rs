@@ -33,6 +33,7 @@ fn main() {
         let mut qemu = Command::new("qemu-system-x86_64");
         if !config.debug {
             qemu.arg("--cdrom").arg("mykernel.iso")
+                // .arg("-d").arg("int,cpu_reset")
                 .arg("-m").arg("1G").status().unwrap();
         } else {
             qemu.arg("--cdrom").arg("mykernel.iso")

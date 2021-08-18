@@ -1,4 +1,4 @@
-use crate::{asm_wrappers::{enable_nxe_bit, enable_write_protect_bit}, debugprintln, memory::paging::remap_kernel, multiboot::MultibootInfo};
+use crate::{asm_wrappers::{enable_nxe_bit, enable_write_protect_bit}, debugprintln, memory::paging::remap_kernel, multiboot::MultibootInfo, println};
 
 mod region_frame_allocator;
 mod paging;
@@ -58,7 +58,7 @@ pub trait FrameAllocator {
 }
 
 pub fn init(multiboot_info: &MultibootInfo) {
-    debugprintln!("\nBootloader left us the following memory areas:");
+    debugprintln!("\nBootloader left us the following memory areas...");
     let memory_map = multiboot_info.memory_map();
     for region in memory_map.iter() {
         debugprintln!("    start: 0x{:0x}, length: {:}", region.base_addr, region.length);
@@ -68,17 +68,28 @@ pub fn init(multiboot_info: &MultibootInfo) {
     let kernel_end = multiboot_info.kernel_end();
     let multiboot_start = multiboot_info.multiboot_start();
     let multiboot_end = multiboot_info.multiboot_end();
+    let shstrtab_start = multiboot_info.shstrtab_start();
+    let shstrtab_end = multiboot_info.shstrtab_end();
 
     debugprintln!("\nStart of kernel: 0x{:x}", kernel_start);
     debugprintln!("End of kernel: 0x{:x}", kernel_end);
 
-    let mut allocator = RegionFrameAllocator::new(kernel_start, kernel_end, multiboot_start, multiboot_end, memory_map);
-    
+    let mut allocator = RegionFrameAllocator::new(kernel_start, 
+                                                                    kernel_end, 
+                                                                    multiboot_start, 
+                                                                    multiboot_end, 
+                                                                    shstrtab_start, 
+                                                                    shstrtab_end, 
+                                                                    memory_map);
     unsafe {
         enable_nxe_bit();
-    }
-    debugprintln!("\nIdentity mapping kernel sections:");
-    let mut active_table = remap_kernel(&mut allocator, multiboot_info.elf_sections(), multiboot_start, multiboot_end);
+    }  
+    let mut active_table = remap_kernel(&mut allocator, 
+                                                        multiboot_info.elf_sections(), 
+                                                        multiboot_start, 
+                                                        multiboot_end, 
+                                                        shstrtab_start, 
+                                                        shstrtab_end);
     unsafe {
         enable_write_protect_bit();
     }

@@ -34,6 +34,12 @@ impl MultibootInfo {
     pub fn multiboot_end(&self) -> usize {
         self.ptr() + self.total_size as usize
     }
+    pub fn shstrtab_start(&self) -> usize {
+        self.elf_sections().map(|s| s.name_ptr as usize).min().unwrap()
+    }
+    pub fn shstrtab_end(&self) -> usize {
+        self.elf_sections().map(|s| s.name_ptr as usize + s.name_len).max().unwrap()
+    }
     pub fn ptr(&self) -> usize {
         self as *const Self as usize
     }

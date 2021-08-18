@@ -138,7 +138,12 @@ impl InactivePageTable {
     }
 }
 
-pub fn remap_kernel<A>(allocator: &mut A, elf_sections: ElfSections, multiboot_start: usize, multiboot_end: usize) -> ActivePageTable
+pub fn remap_kernel<A>(allocator: &mut A, 
+                        elf_sections: ElfSections, 
+                        multiboot_start: usize, 
+                        multiboot_end: usize,
+                        shstrtab_start: usize, 
+                        shstrtab_end: usize) -> ActivePageTable
     where A: FrameAllocator
 {
     let mut temporary_page = TemporaryPage::new(Page { number: 0xdeadbeef },
@@ -151,40 +156,45 @@ pub fn remap_kernel<A>(allocator: &mut A, elf_sections: ElfSections, multiboot_s
     };
 
     active_table.with(&mut new_table, &mut temporary_page, |mapper| {
+        debugprintln!("\nIdentity mapping VGA text buffer at 0xb8000...");
+        let vga_buffer_frame = PhysFrame::containing_address(0xb8000);
+        mapper.identity_map(vga_buffer_frame, EntryFlags::WRITABLE, allocator);
+        debugprintln!("\nIdentity mapping multiboot info section...");
+        debugprintln!("    Data start: {:#x}", multiboot_start);
+        debugprintln!("    Data end: {:#x}", multiboot_end);
+        for frame in PhysFrame::range_inclusive(
+            PhysFrame::containing_address(multiboot_start), 
+            PhysFrame::containing_address(multiboot_end - 1)) {
+            mapper.identity_map(frame, EntryFlags::PRESENT, allocator);
+        }
+        debugprintln!("    .shstrtab start: {:#x}", shstrtab_start);
+        debugprintln!("    .shstrtab end: {:#x}", shstrtab_end);
+        for frame in PhysFrame::range_inclusive(
+            PhysFrame::containing_address(shstrtab_start), 
+            PhysFrame::containing_address(shstrtab_end - 1)) {
+            mapper.identity_map(frame, EntryFlags::PRESENT, allocator);
+        }
+        debugprintln!("\nIdentity mapping kernel sections...");
         for (idx, section) in elf_sections.enumerate() {
             if !section.is_allocated() { continue; }
             assert!(section.addr % (PAGE_SIZE as u64) == 0, "Sections need to be page aligned!");
-        
             let mut name = section.name();
             if name.len() > 30 {
                 name = &name[..30];
             }
             debugprintln!("    [{}] {} addr: 0x{:0x}, size: {:0x}, flags: 0x{:0x}", idx, name, section.addr, section.size, section.flags);
-        
             let flags = EntryFlags::from_elf_section(&section);
-        
             let start_frame = PhysFrame::containing_address(section.addr as usize);
             let end_frame = PhysFrame::containing_address((section.addr + section.size - 1) as usize);
             for frame in PhysFrame::range_inclusive(start_frame, end_frame) {
                 mapper.identity_map(frame, flags, allocator);
             }
         }
-        debugprintln!("\nIdentity mapping VGA text buffer at 0xb8000...");
-        let vga_buffer_frame = PhysFrame::containing_address(0xb8000);
-        mapper.identity_map(vga_buffer_frame, EntryFlags::WRITABLE, allocator);
-        debugprintln!("\nIdentity mapping multiboot info section...");
-        debugprintln!("    Start: {:#x}", multiboot_start);
-        debugprintln!("    End: {:#x}", multiboot_end);
-        for frame in PhysFrame::range_inclusive(
-            PhysFrame::containing_address(multiboot_start), 
-            PhysFrame::containing_address(multiboot_end - 1)) {
-            mapper.identity_map(frame, EntryFlags::PRESENT, allocator);
-        }
     });
     let old_table = active_table.switch(new_table);
     // turn the old p4 page into a guard page
     let old_p4_page = Page::containing_address(old_table.p4_frame.start_address());
     active_table.unmap(old_p4_page, allocator);
-    debugprintln!("\nKernel stack guard page is at {:#x}", old_p4_page.start_address());
+    debugprintln!("\nKernel stack guard page is at {:#x}...", old_p4_page.start_address());
     active_table
 }

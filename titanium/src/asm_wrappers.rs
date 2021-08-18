@@ -1,4 +1,6 @@
 
+use crate::interrupts::{SegmentSelector, DescriptorTablePointer};
+
 const EFER: u32 = 0xC000_0080;
 const NXE_BIT: u32 = 1 << 11;
 const WRITE_PROTECT: usize = 1 << 16;
@@ -46,4 +48,24 @@ pub unsafe fn enable_write_protect_bit() {
     let value: usize;
     asm!("mov {}, cr0", out(reg) value, options(nomem, nostack, preserves_flags));
     asm!("mov cr0, {}", in(reg) value | WRITE_PROTECT, options(nostack, preserves_flags));
+}
+
+pub fn idle() -> ! {
+    loop {
+        unsafe {
+            asm!("hlt", options(nomem, nostack, preserves_flags));
+        }
+    }
+}
+
+#[inline]
+pub fn code_segment_selector() -> SegmentSelector {
+    let segment: u16;
+    unsafe { asm!("mov {}, cs", out(reg) segment, options(nomem, nostack, preserves_flags)); };
+    SegmentSelector(segment)
+}
+
+#[inline]
+pub unsafe fn load_interrupt_descriptor_table(idt: &DescriptorTablePointer) {
+    asm!("lidt [{}]", in(reg) idt, options(readonly, nostack, preserves_flags));
 }

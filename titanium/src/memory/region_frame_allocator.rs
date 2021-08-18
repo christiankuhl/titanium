@@ -9,10 +9,18 @@ pub struct RegionFrameAllocator {
     kernel_end: PhysFrame,
     multiboot_start: PhysFrame,
     multiboot_end: PhysFrame,
+    shstrtab_start: PhysFrame,
+    shstrtab_end: PhysFrame,
 }
 
 impl RegionFrameAllocator {
-    pub fn new(kernel_start: usize, kernel_end: usize, multiboot_start: usize, multiboot_end: usize, memory_map: MemoryMap) -> Self
+    pub fn new(kernel_start: usize, 
+                kernel_end: usize, 
+                multiboot_start: usize, 
+                multiboot_end: usize, 
+                shstrtab_start: usize,
+                shstrtab_end: usize,
+                memory_map: MemoryMap) -> Self
     {
         let mut allocator = Self {
             next_free_frame: PhysFrame::containing_address(0),
@@ -22,6 +30,8 @@ impl RegionFrameAllocator {
             kernel_end: PhysFrame::containing_address(kernel_end),
             multiboot_start: PhysFrame::containing_address(multiboot_start),
             multiboot_end: PhysFrame::containing_address(multiboot_end),
+            shstrtab_start: PhysFrame::containing_address(shstrtab_start),
+            shstrtab_end: PhysFrame::containing_address(shstrtab_end),
         };
         allocator.choose_next_region();
         allocator
@@ -70,6 +80,11 @@ impl FrameAllocator for RegionFrameAllocator {
                 // `frame` is used by the multiboot information structure
                 self.next_free_frame = PhysFrame {
                     number: self.multiboot_end.number + 1
+                };
+            } else if frame >= self.shstrtab_start && frame <= self.shstrtab_end {
+                // `frame` is used by the multiboot information structure
+                self.next_free_frame = PhysFrame {
+                    number: self.shstrtab_end.number + 1
                 };
             } else {
                 // frame is unused, increment `next_free_frame` and return it
