@@ -2,6 +2,7 @@ use crate::{asm_wrappers::{enable_nxe_bit, enable_write_protect_bit}, debugprint
 
 mod region_frame_allocator;
 mod paging;
+mod heap;
 
 use region_frame_allocator::RegionFrameAllocator;
 pub use self::paging::{PhysAddr, VirtAddr, Mapper};
@@ -77,8 +78,9 @@ pub fn init(multiboot_info: &MultibootInfo) {
         enable_nxe_bit();
     }
     debugprintln!("\nIdentity mapping kernel sections:");
-    remap_kernel(&mut allocator, multiboot_info.elf_sections(), multiboot_start, multiboot_end);
+    let mut active_table = remap_kernel(&mut allocator, multiboot_info.elf_sections(), multiboot_start, multiboot_end);
     unsafe {
         enable_write_protect_bit();
     }
+    heap::init(&mut active_table, &mut allocator);
 }

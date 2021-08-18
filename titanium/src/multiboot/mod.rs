@@ -21,10 +21,12 @@ impl MultibootInfo {
         ElfSections::new(addr)
     }
     pub fn kernel_start(&self) -> usize {
-        self.elf_sections().map(|s| s.addr).min().unwrap().try_into().unwrap()
+        self.elf_sections().filter(|s| s.is_allocated())
+            .map(|s| s.addr).min().unwrap().try_into().unwrap()
     }
     pub fn kernel_end(&self) -> usize {
-        self.elf_sections().map(|s| s.addr + s.size).max().unwrap().try_into().unwrap()
+        self.elf_sections().filter(|s| s.is_allocated())
+            .map(|s| s.addr + s.size).max().unwrap().try_into().unwrap()
     }
     pub fn multiboot_start(&self) -> usize {
         self.ptr()

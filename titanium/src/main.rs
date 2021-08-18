@@ -25,7 +25,6 @@ mod shell;
 mod interrupt;
 mod gdt;
 mod memory;
-mod allocator;
 mod pci;
 mod multitasking;
 mod serial;
@@ -42,27 +41,8 @@ pub extern "C" fn kernel_main(multiboot_info: &multiboot::MultibootInfo) -> ! {
     gdt::init();
 
     interrupt::init();
-    // # Foo
-    // let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset.into_option().unwrap());
-    // let mut mapper = unsafe { memory::init(phys_mem_offset) };
-    // let mut frame_allocator = unsafe {
-    //     memory::BootInfoFrameAllocator::init(&boot_info.memory_regions)
-    // };
-    // allocator::init_heap(&mut mapper, &mut frame_allocator)
-    //     .expect("Heap initialization failed!");
-    // let mut device_manager = drivers::DriverManager::new();
-    // let mut pci = pci::PCIController::new();
-    // pci.enumerate();
-    // {
-    //     let mut taskmgr = multitasking::TASKMANAGER.lock();
-    //     let task1 = multitasking::Task::new(test1);
-    //     let task2 = multitasking::Task::new(test2);
-    //     taskmgr.add_task(task1);
-    //     taskmgr.add_task(task2);
-    //     taskmgr.start();
-    // }
 
-    // let b = alloc::boxed::Box::new([0u8; 1usize << 21]);
+    let b = alloc::boxed::Box::new(42);
 
     println!("Hello, world!\nHow are you on this most glorious of days?");
 
