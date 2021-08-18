@@ -11,6 +11,7 @@ fn main() {
         process::exit(1);
     });
     let profile = if config.debug { "debug" } else { "release" };
+    let kernel_binary = format!("target/x86_64-titanium/{}/titanium", profile);
     if config.build {
         let mut cargo = Command::new("cargo");
         let build_cmd = if config.debug { 
@@ -22,7 +23,7 @@ fn main() {
         Command::new("mkdir").arg("iso").status().unwrap();
         Command::new("mkdir").arg("iso/boot").status().unwrap();
         Command::new("mkdir").arg("iso/boot/grub").status().unwrap();
-        Command::new("cp").arg(format!("target/x86_64-titanium/{}/titanium", profile)).arg("iso/boot/titanium.bin").status().unwrap();
+        Command::new("cp").arg(&kernel_binary).arg("iso/boot/titanium.bin").status().unwrap();
         let mut cfg = File::create("iso/boot/grub/grub.cfg").expect("Failed to create grub.cfg");
         cfg.write_all(b"set timeout=0\nset default=0\n\nmenuentry \"Titanium OS\" {\nmultiboot2 /boot/titanium.bin\nboot\n}").unwrap();
         Command::new("grub-mkrescue").arg("--output=mykernel.iso").arg("iso").status().unwrap();
@@ -36,9 +37,10 @@ fn main() {
         } else {
             qemu.arg("--cdrom").arg("mykernel.iso")
                 .arg("-m").arg("1G").arg("-s").arg("-S")
+                .spawn().expect("Failed to run QEMU");
+            Command::new("gdb").arg(&kernel_binary).arg("-ex").arg("source debug.gdb")
                 .status().unwrap();
         }
-        
     }
 }
 
