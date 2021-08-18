@@ -38,7 +38,7 @@ fn main() {
             qemu.arg("--cdrom").arg("mykernel.iso")
                 .arg("-m").arg("1G").arg("-s").arg("-S")
                 .spawn().expect("Failed to run QEMU");
-            Command::new("gdb").arg(&kernel_binary).arg("-ex").arg("source debug.gdb")
+            Command::new("rust-gdb").arg(&kernel_binary).arg("-ex").arg("source debug.gdb")
                 .status().unwrap();
         }
     }
