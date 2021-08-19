@@ -1,4 +1,4 @@
-use crate::println;
+use crate::debugprintln;
 use core::mem::size_of;
 use core::{marker::PhantomData, ops::BitAnd, ops::BitOr, ops::Shl, ops::Shr};
 use x86_64::instructions::port::Port;
@@ -83,14 +83,14 @@ impl PCIController {
         let subclass_id = pcidevice.common().subclass_id.read(self);
         match pcidevice {
             PCIDevice::PCIBridge(bridge) => {
-                println!("{}", devices::description(class_id, subclass_id, 0));
+                debugprintln!("{}", devices::description(class_id, subclass_id, 0));
                 let secondary_bus = bridge.secondary_bus.read(self);
                 self.enumerate_bus(secondary_bus);
             }
             _ => {
                 let vendor_id = pcidevice.common().vendor_id.read(self);
-                println!(
-                    "Found {} {} at {:?}",
+                debugprintln!(
+                    "    {} {} at {:?}",
                     vendors::vendor(vendor_id),
                     devices::description(class_id, subclass_id, 0),
                     pcidevice.bdf()

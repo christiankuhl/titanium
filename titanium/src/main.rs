@@ -8,7 +8,7 @@
 #![feature(naked_functions)]
 #![macro_use]
 // TEMP:
-#![allow(dead_code)]
+// #![allow(dead_code)]
 
 extern crate alloc;
 
@@ -22,7 +22,6 @@ mod interrupts;
 mod memory;
 mod multiboot;
 mod multitasking;
-mod pci;
 mod serial;
 mod shell;
 
@@ -40,9 +39,9 @@ pub extern "C" fn kernel_main(multiboot_info: &multiboot::MultibootInfo) -> ! {
     debugprintln!("\nConfiguring physical memory...");
     memory::init(multiboot_info);
 
-    // let mut device_manager = drivers::DriverManager::new();
-    // let mut pci = pci::PCIController::new();
-    // pci.enumerate();
+    drivers::init();
+
+
     // {
     //     let mut taskmgr = multitasking::TASKMANAGER.lock();
     //     let task1 = multitasking::Task::new(test1);
