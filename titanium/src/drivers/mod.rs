@@ -1,4 +1,6 @@
 pub mod mouse;
+pub mod keyboard;
+pub mod pic;
 
 trait Driver {
     fn init(&mut self);

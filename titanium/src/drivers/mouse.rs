@@ -1,6 +1,14 @@
 use x86_64::instructions::port::Port;
+use lazy_static::lazy_static;
 
 use crate::shell::vga_buffer::WRITER;
+
+lazy_static! {
+    pub static ref MOUSE: spin::Mutex<Mouse> = spin::Mutex::new(Mouse::new());
+}
+
+static mut MOUSE_X: i8 = 40;
+static mut MOUSE_Y: i8 = 12;
 
 pub struct Mouse {
     buffer: [i8; 3],
@@ -105,4 +113,24 @@ impl MouseInit {
             self.data_port.read()
         }
     }
+}
+
+pub unsafe fn move_mouse_cursor(dx: i8, dy: i8) {
+    let mut screen = WRITER.lock();
+    screen.invert(MOUSE_Y as usize, MOUSE_X as usize);
+    MOUSE_X += dx / 2;
+    if MOUSE_X < 0 {
+        MOUSE_X = 0
+    };
+    if MOUSE_X >= 80 {
+        MOUSE_X = 79
+    };
+    MOUSE_Y -= dy / 2;
+    if MOUSE_Y < 0 {
+        MOUSE_Y = 0
+    };
+    if MOUSE_Y >= 25 {
+        MOUSE_Y = 24
+    };
+    screen.invert(MOUSE_Y as usize, MOUSE_X as usize);
 }

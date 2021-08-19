@@ -5,6 +5,7 @@
 #![feature(const_mut_refs)]
 #![feature(ptr_internals)]
 #![feature(asm)]
+#![feature(naked_functions)]
 #![macro_use]
 // TEMP:
 #![allow(dead_code)]
@@ -51,9 +52,7 @@ pub extern "C" fn kernel_main(multiboot_info: &multiboot::MultibootInfo) -> ! {
     //     taskmgr.start();
     // }
 
-    // x86_64::instructions::interrupts::enable();
-    // x86_64::instructions::interrupts::int3();
-    // overflow_stack();
+    x86_64::instructions::interrupts::enable();
 
     println!("Hello, world!\nHow are you on this most glorious of days?");
 

@@ -1,6 +1,7 @@
 use core::mem::size_of;
 
 use crate::asm_wrappers::{code_segment_selector, load_interrupt_descriptor_table};
+use crate::drivers::pic::{PIC_1_OFFSET, PIC_2_OFFSET};
 
 pub type HandlerFunc = extern "C" fn() -> !;
 
@@ -114,11 +115,11 @@ impl PrivilegeLevel {
     }
 }
 
-pub struct InterruptDescriptorTable([IDTEntry; 16]);
+pub struct InterruptDescriptorTable([IDTEntry; 45]);
 
 impl InterruptDescriptorTable {
     pub fn new() -> Self {
-        Self([IDTEntry::missing(); 16])
+        Self([IDTEntry::missing(); 45])
     }
     pub fn set_handler(&mut self, entry: u8, handler: HandlerFunc) -> &mut EntryOptions {
         self.0[entry as usize] = IDTEntry::new(code_segment_selector(), handler);
@@ -139,4 +140,27 @@ impl InterruptDescriptorTable {
 pub struct DescriptorTablePointer {
     pub limit: u16,
     pub base: u64,
+}
+
+#[repr(u8)]
+pub enum Interrupt {
+    DivideError = 0x0,
+    Debug = 0x1,
+    NonMaskableInterrupt = 0x2,
+    Breakpoint = 0x3,
+    Overflow = 0x4,
+    BoundRangeExceeded = 0x5,
+    InvalidOpcode = 0x6,
+    DeviceNotAvailable = 0x7,
+    DoubleFault = 0x8,
+    InvalidTSS = 0xa,
+    SegmentNotPresent = 0xb,
+    StackSegmentFault = 0xc,
+    GeneralProtectionFault = 0xd,
+    PageFault = 0xe,
+    AlignmentCheck = 0x11,
+    SIMDException = 0x13,
+    Timer = PIC_1_OFFSET,
+    Keyboard = PIC_1_OFFSET + 1,
+    Mouse = PIC_2_OFFSET + 4,
 }

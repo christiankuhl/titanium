@@ -70,3 +70,10 @@ pub fn code_segment_selector() -> SegmentSelector {
 pub unsafe fn load_interrupt_descriptor_table(idt: &DescriptorTablePointer) {
     asm!("lidt [{}]", in(reg) idt, options(readonly, nostack, preserves_flags));
 }
+
+#[inline]
+pub fn breakpoint() {
+    unsafe {
+        asm!("int3", options(nomem, nostack));
+    }
+}
