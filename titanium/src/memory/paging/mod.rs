@@ -161,18 +161,12 @@ where
         let vga_buffer_frame = PhysFrame::containing_address(0xb8000);
         mapper.identity_map(vga_buffer_frame, EntryFlags::WRITABLE, allocator);
         debugprintln!("\nIdentity mapping multiboot info section...");
-        debugprintln!("    Data start: {:#x}", multiboot_start);
-        debugprintln!("    Data end: {:#x}", multiboot_end);
-        for frame in PhysFrame::range_inclusive(
-            PhysFrame::containing_address(multiboot_start),
-            PhysFrame::containing_address(multiboot_end - 1),
-        ) {
-            mapper.identity_map(frame, EntryFlags::PRESENT, allocator);
-        }
+        debugprintln!("    data start: {:#x}", multiboot_start);
+        debugprintln!("    data end: {:#x}", multiboot_end);
         debugprintln!("    .shstrtab start: {:#x}", shstrtab_start);
         debugprintln!("    .shstrtab end: {:#x}", shstrtab_end);
         for frame in PhysFrame::range_inclusive(
-            PhysFrame::containing_address(shstrtab_start),
+            PhysFrame::containing_address(multiboot_start),
             PhysFrame::containing_address(shstrtab_end - 1),
         ) {
             mapper.identity_map(frame, EntryFlags::PRESENT, allocator);
