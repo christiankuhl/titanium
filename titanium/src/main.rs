@@ -34,13 +34,10 @@ pub extern "C" fn kernel_main(multiboot_info: &multiboot::MultibootInfo) -> ! {
     debugprintln!("\nInitialising global descriptor table...");
     gdt::init();
 
-    // interrupt::init();
     interrupts::init();
     
     debugprintln!("\nConfiguring physical memory...");
     memory::init(multiboot_info);
-
-    divide_by_zero();
 
     // let mut device_manager = drivers::DriverManager::new();
     // let mut pci = pci::PCIController::new();
