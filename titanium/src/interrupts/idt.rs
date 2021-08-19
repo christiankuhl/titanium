@@ -1,9 +1,6 @@
 use core::mem::size_of;
 
-use crate::{
-    asm_wrappers::{code_segment_selector, load_interrupt_descriptor_table},
-    println,
-};
+use crate::asm_wrappers::{code_segment_selector, load_interrupt_descriptor_table};
 
 pub type HandlerFunc = extern "C" fn() -> !;
 
@@ -128,15 +125,17 @@ impl InterruptDescriptorTable {
         &mut self.0[entry as usize].options
     }
     pub fn load(&'static self) {
-        let ptr = DescriptorTablePointer { base: self as *const _ as u64, limit: (size_of::<Self>() - 1) as u16 };
-        println!("{:?}", &ptr);
+        let ptr = DescriptorTablePointer {
+            base: self as *const _ as u64,
+            limit: (size_of::<Self>() - 1) as u16,
+        };
         unsafe {
             load_interrupt_descriptor_table(&ptr);
-        };
+        }
     }
 }
 
-#[derive(Debug)]
+#[repr(C, packed)]
 pub struct DescriptorTablePointer {
     pub limit: u16,
     pub base: u64,

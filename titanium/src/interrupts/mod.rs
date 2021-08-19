@@ -7,13 +7,13 @@ use self::idt::InterruptDescriptorTable;
 pub use self::idt::{DescriptorTablePointer, SegmentSelector};
 
 lazy_static! {
-    static ref IDT: InterruptDescriptorTable = {
+    pub static ref IDT: InterruptDescriptorTable = {
         let mut idt = InterruptDescriptorTable::new();
         idt.set_handler(0, divide_by_zero_handler);
         idt.set_handler(1, divide_by_zero_handler);
         idt.set_handler(2, divide_by_zero_handler);
         idt.set_handler(3, divide_by_zero_handler);
-        idt.set_handler(4, divide_by_zero_handler);
+        idt.set_handler(14, page_fault_handler);
         // idt.breakpoint.set_handler_fn(breakpoint_handler);
         // unsafe {
         //     idt.double_fault.set_handler_fn(double_fault_handler)
@@ -32,6 +32,11 @@ lazy_static! {
 
 extern "C" fn divide_by_zero_handler() -> ! {
     println!("EXCEPTION: DIVIDE BY ZERO");
+    loop {}
+}
+
+extern "C" fn page_fault_handler() -> ! {
+    println!("EXCEPTION: PAGE FAULT");
     loop {}
 }
 
