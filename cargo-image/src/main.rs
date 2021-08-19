@@ -31,8 +31,9 @@ fn main() {
         if !config.debug {
             qemu.arg("--cdrom")
                 .arg("mykernel.iso")
-                // .arg("-d").arg("int")
-                // .arg("-no-reboot")
+                // .arg("-d").arg("int,cpu_reset")
+                .arg("-no-reboot")
+                .arg("-enable-kvm")
                 .arg("-m")
                 .arg("1G")
                 .status()
@@ -40,6 +41,7 @@ fn main() {
         } else {
             qemu.arg("--cdrom")
                 .arg("mykernel.iso")
+                .arg("-enable-kvm")
                 .arg("-m")
                 .arg("1G")
                 .arg("-s")
