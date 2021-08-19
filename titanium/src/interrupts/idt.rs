@@ -1,6 +1,6 @@
 use core::mem::size_of;
 
-use crate::asm_wrappers::{code_segment_selector, load_interrupt_descriptor_table};
+use crate::asm::{code_segment_selector, load_interrupt_descriptor_table};
 use crate::drivers::pic::{PIC_1_OFFSET, PIC_2_OFFSET};
 
 pub type HandlerFunc = extern "C" fn() -> !;

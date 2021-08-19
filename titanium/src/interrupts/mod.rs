@@ -1,18 +1,16 @@
 use lazy_static::lazy_static;
 use pc_keyboard::DecodedKey;
-use x86_64::instructions::interrupts::without_interrupts;
-use x86_64::instructions::port::Port;
 
-use crate::{println, debugprintln, print, gdt, asm_wrappers::idle};
+use crate::{println, debugprintln, print};
+use crate::asm::{idle, page_fault_linear_address, without_interrupts, inb};
 use crate::drivers::pic::PICS;
 use crate::drivers::keyboard::KEYBOARD;
 use crate::drivers::mouse::{MOUSE, init_mouse, move_mouse_cursor, MouseEvent};
 
-use x86_64::registers::control::Cr2;
-
 mod idt;
+mod gdt;
 #[macro_use]
-mod asm_wrappers;
+mod asm;
 
 use self::idt::{InterruptDescriptorTable, Interrupt};
 pub use self::idt::{DescriptorTablePointer, SegmentSelector};
@@ -48,7 +46,7 @@ extern "C" fn divide_by_zero_handler(stack_frame: &InterruptStackFrame) -> ! {
 #[no_mangle]
 extern "C" fn page_fault_handler(stack_frame: &InterruptStackFrame, error_code: u64) {
     println!("EXCEPTION: PAGE FAULT");
-    println!("Accessed Address: {:?}", Cr2::read());
+    println!("Accessed Address: {:?}", page_fault_linear_address());
     println!("Error Code: {:?}", error_code);
     println!("{:#?}", stack_frame);
     idle();
@@ -81,8 +79,7 @@ extern "C" fn timer_interrupt_handler(mut stack_frame: &InterruptStackFrame) {
 #[no_mangle]
 extern "C" fn keyboard_interrupt_handler(_stack_frame: &InterruptStackFrame) {
     let mut keyboard = KEYBOARD.lock();
-    let mut port = Port::new(0x60);
-    let scancode: u8 = unsafe { port.read() };
+    let scancode: u8 = unsafe { inb(0x60) };
     if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
         if let Some(key) = keyboard.process_keyevent(key_event) {
             match key {
@@ -100,8 +97,7 @@ extern "C" fn keyboard_interrupt_handler(_stack_frame: &InterruptStackFrame) {
 #[no_mangle]
 extern "C" fn mouse_interrupt_handler(_stack_frame: &InterruptStackFrame) {
     let mut mouse = MOUSE.lock();
-    let mut port = Port::new(0x60);
-    let data: u8 = unsafe { port.read() };
+    let data: u8 = unsafe { inb(0x60) };
     mouse.add_byte(data as i8);
     if let Some(event) = mouse.event() {
         match event {
@@ -115,6 +111,9 @@ extern "C" fn mouse_interrupt_handler(_stack_frame: &InterruptStackFrame) {
 }
 
 pub fn init() {
+    debugprintln!("\nInitialising global descriptor table...");
+    gdt::init();
+
     debugprintln!("\nInitialising interrupt descriptor table...");
     init_idt();
 

@@ -14,24 +14,19 @@ extern crate alloc;
 
 use core::panic::PanicInfo;
 
-mod asm_wrappers;
+mod asm;
 mod drivers;
-mod gdt;
-mod interrupt;
 mod interrupts;
 mod memory;
 mod multiboot;
 mod multitasking;
 mod shell;
 
-use asm_wrappers::{idle, enable_interrupts};
+use asm::{idle, enable_interrupts};
 
 #[no_mangle]
 pub extern "C" fn kernel_main(multiboot_info: &multiboot::MultibootInfo) -> ! {
     debugprintln!("Entering Rust kernel...");
-
-    debugprintln!("\nInitialising global descriptor table...");
-    gdt::init();
 
     interrupts::init();
     

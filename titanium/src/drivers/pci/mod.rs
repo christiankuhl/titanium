@@ -1,4 +1,5 @@
 use crate::debugprintln;
+use core::fmt::Display;
 use core::mem::size_of;
 use core::{marker::PhantomData, ops::BitAnd, ops::BitOr, ops::Shl, ops::Shr};
 use x86_64::instructions::port::Port;
@@ -90,7 +91,7 @@ impl PCIController {
             _ => {
                 let vendor_id = pcidevice.common().vendor_id.read(self);
                 debugprintln!(
-                    "    {} {} at {:?}",
+                    "    {} {} at {}",
                     vendors::vendor(vendor_id),
                     devices::description(class_id, subclass_id, 0),
                     pcidevice.bdf()
@@ -543,5 +544,11 @@ impl BDF {
             | (((self.device & 0x1f) as u32) << 11)
             | (((self.function & 0x7) as u32) << 8)
             | ((offset & 0xfc) as u32)
+    }
+}
+
+impl Display for BDF {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> Result<(), core::fmt::Error> { 
+        write!(f, "bus {}, device {}, function {}", self.bus, self.device, self.function)
     }
 }

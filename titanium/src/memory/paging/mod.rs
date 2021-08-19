@@ -2,7 +2,7 @@ use core::ops::{Deref, DerefMut};
 
 use super::{FrameAllocator, PhysFrame, PAGE_SIZE};
 use crate::multiboot::elf::ElfSections;
-use crate::{asm_wrappers::Cr3, debugprintln};
+use crate::{asm::Cr3, debugprintln};
 
 mod entry;
 mod mapper;
