@@ -1,9 +1,6 @@
 use core::ops::Deref;
 use core::{slice, str};
 
-use crate::debugprintln;
-use crate::println;
-
 pub struct ElfSections {
     header: *const ElfSectionTagHeader,
     current: *const ElfSectionHeader,
@@ -89,7 +86,7 @@ pub struct ElfSection {
 
 impl ElfSection {
     fn new(header: ElfSectionHeader, string_ptr: *const u8) -> Self {
-        let mut name_len;
+        let name_len;
         let name_ptr = unsafe { string_ptr.offset(header.name_index as isize) };
         if header.name_index == 0 {
             name_len = 0
