@@ -34,19 +34,13 @@ pub extern "C" fn kernel_main(multiboot_info: &multiboot::MultibootInfo) -> ! {
     debugprintln!("\nInitialising global descriptor table...");
     gdt::init();
 
-    interrupt::init();
-
+    // interrupt::init();
+    interrupts::init();
+    
     debugprintln!("\nConfiguring physical memory...");
     memory::init(multiboot_info);
 
-    // interrupts::init();
-    // let ptr: usize = unsafe {
-    //     *(0x112f78 as *const usize)
-    // };
-    // println!("{:#x}", ptr);
-    // divide_by_zero();
-
-    // println!("{:#b}", interrupts::EntryOptions::minimal().0);
+    divide_by_zero();
 
     // let mut device_manager = drivers::DriverManager::new();
     // let mut pci = pci::PCIController::new();
@@ -61,9 +55,6 @@ pub extern "C" fn kernel_main(multiboot_info: &multiboot::MultibootInfo) -> ! {
     // }
 
     // x86_64::instructions::interrupts::enable();
-    // unsafe {
-    //     *(0xdeadbeef as *mut u8) = 3;
-    // }
     // x86_64::instructions::interrupts::int3();
     // overflow_stack();
 
