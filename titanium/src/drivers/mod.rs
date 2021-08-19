@@ -1,9 +1,10 @@
-use crate::debugprintln;
 
 pub mod mouse;
 pub mod keyboard;
 pub mod pic;
 pub mod pci;
+#[macro_use]
+pub mod serial;
 
 trait Driver {
     fn init(&mut self);

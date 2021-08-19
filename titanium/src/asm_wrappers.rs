@@ -77,3 +77,10 @@ pub fn breakpoint() {
         asm!("int3", options(nomem, nostack));
     }
 }
+
+#[inline]
+pub fn enable_interrupts() {
+    unsafe {
+        asm!("sti", options(nomem, nostack));
+    }
+}

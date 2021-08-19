@@ -22,10 +22,9 @@ mod interrupts;
 mod memory;
 mod multiboot;
 mod multitasking;
-mod serial;
 mod shell;
 
-use asm_wrappers::idle;
+use asm_wrappers::{idle, enable_interrupts};
 
 #[no_mangle]
 pub extern "C" fn kernel_main(multiboot_info: &multiboot::MultibootInfo) -> ! {
@@ -41,7 +40,6 @@ pub extern "C" fn kernel_main(multiboot_info: &multiboot::MultibootInfo) -> ! {
 
     drivers::init();
 
-
     // {
     //     let mut taskmgr = multitasking::TASKMANAGER.lock();
     //     let task1 = multitasking::Task::new(test1);
@@ -51,10 +49,8 @@ pub extern "C" fn kernel_main(multiboot_info: &multiboot::MultibootInfo) -> ! {
     //     taskmgr.start();
     // }
 
-    x86_64::instructions::interrupts::enable();
-
     println!("Hello, world!\nHow are you on this most glorious of days?");
-
+    enable_interrupts();
     idle();
 }
 
