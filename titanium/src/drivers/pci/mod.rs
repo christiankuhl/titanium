@@ -1,32 +1,49 @@
-use crate::debugprintln;
 use core::fmt::Display;
 use core::mem::size_of;
 use core::{marker::PhantomData, ops::BitAnd, ops::BitOr, ops::Shl, ops::Shr};
-use x86_64::instructions::port::Port;
+
+use crate::debugprintln;
+use crate::asm::{inl, outl};
 
 mod devices;
 mod vendors;
 
 pub struct PCIController {
-    ctrl_port: Port<u32>,
-    data_port: Port<u32>,
+    ctrl_port: u16,
+    data_port: u16,
 }
 
 impl PCIController {
     pub fn new() -> Self {
-        Self { ctrl_port: Port::new(0xcf8), data_port: Port::new(0xcfc) }
+        Self { ctrl_port: 0xcf8, data_port: 0xcfc }
     }
     fn read(&mut self, bdf: BDF, offset: u8) -> RegisterValue {
         unsafe {
-            self.ctrl_port.write(bdf.id(offset));
-            RegisterValue(self.data_port.read() >> (8 * (offset % 4)))
+            self.ctrl_port_write(bdf.id(offset));
+            RegisterValue(self.data_port_read() >> (8 * (offset % 4)))
         }
     }
     fn write(&mut self, bdf: BDF, offset: u8, value: RegisterValue) {
         unsafe {
-            self.ctrl_port.write(bdf.id(offset));
-            self.data_port.write(value.into());
+            self.ctrl_port_write(bdf.id(offset));
+            self.data_port_write(value.into());
         }
+    }
+    #[inline]
+    fn ctrl_port_read(&self) -> u32 {
+        unsafe { inl(self.ctrl_port) }
+    }
+    #[inline]
+    fn ctrl_port_write(&self, value: u32) {
+        unsafe { outl(self.ctrl_port, value) }
+    }
+    #[inline]
+    fn data_port_read(&self) -> u32 {
+        unsafe { inl(self.data_port) }
+    }
+    #[inline]
+    fn data_port_write(&self, value: u32) {
+        unsafe { outl(self.data_port, value) }
     }
 
     pub fn enumerate(&mut self) {

@@ -123,12 +123,12 @@ pub fn init() {
 
 #[derive(Debug)]
 #[repr(C)]
-struct InterruptStackFrame {
-    instruction_pointer: u64,
-    code_segment: u64,
-    cpu_flags: u64,
-    stack_pointer: u64,
-    stack_segment: u64,
+pub struct InterruptStackFrame {
+    pub instruction_pointer: u64,
+    pub code_segment: u64,
+    pub cpu_flags: u64,
+    pub stack_pointer: u64,
+    pub stack_segment: u64,
 }
 
 fn init_idt() {

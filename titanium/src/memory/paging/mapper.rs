@@ -4,6 +4,7 @@ use core::ptr::Unique;
 use super::entry::{EntryFlags, Flags};
 use super::table::{Level4, Table, P4};
 use super::{FrameAllocator, Page, PhysAddr, PhysFrame, VirtAddr, ENTRY_COUNT, PAGE_SIZE};
+use crate::asm::flush_tlb;
 
 pub struct Mapper {
     p4: Unique<Table<Level4>>,
@@ -104,9 +105,7 @@ impl Mapper {
         let frame = p1[page.p1_index()].pointed_frame().unwrap();
         p1[page.p1_index()].set_unused();
 
-        use x86_64::instructions::tlb;
-        use x86_64::VirtAddr;
-        tlb::flush(VirtAddr::new(page.start_address().try_into().unwrap()));
+        flush_tlb(page.start_address().try_into().unwrap());
 
         // TODO free p(1,2,3) table if empty
         allocator.deallocate_frame(frame);

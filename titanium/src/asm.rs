@@ -1,6 +1,6 @@
 use crate::interrupts::{DescriptorTablePointer, SegmentSelector};
 
-const EFER: u32 = 0xC000_0080;
+const EFER: u32 = 0xc000_0080;
 const NXE_BIT: u32 = 1 << 11;
 const WRITE_PROTECT: usize = 1 << 16;
 
@@ -24,6 +24,14 @@ impl Cr3 {
         asm!("mov cr3, {}", in(reg) value, options(nostack, preserves_flags));
     }
 }
+
+/// Invalidate the TLB completely by reloading the CR3 register.
+#[inline]
+pub fn tlb_flush_all() {
+    let value = Cr3::read();
+    unsafe { Cr3::write(value) }
+}
+
 
 #[inline]
 pub unsafe fn enable_nxe_bit() {
@@ -66,9 +74,33 @@ pub fn code_segment_selector() -> SegmentSelector {
     SegmentSelector(segment)
 }
 
+pub unsafe fn set_code_segment_selector(sel: SegmentSelector) {
+    asm!(
+        "push {sel}",
+        "lea {tmp}, [1f + rip]",
+        "push {tmp}",
+        "retfq",
+        "1:",
+        sel = in(reg) u64::from(sel.0),
+        tmp = lateout(reg) _,
+        options(preserves_flags),
+    );
+}
+
+
 #[inline]
 pub unsafe fn load_interrupt_descriptor_table(idt: &DescriptorTablePointer) {
     asm!("lidt [{}]", in(reg) idt, options(readonly, nostack, preserves_flags));
+}
+
+#[inline]
+pub unsafe fn load_global_descriptor_table(idt: &DescriptorTablePointer) {
+    asm!("lgdt [{}]", in(reg) idt, options(readonly, nostack, preserves_flags));
+}
+
+#[inline]
+pub unsafe fn load_task_state_segment(sel: SegmentSelector) {
+    asm!("ltr {0:x}", in(reg) sel.0, options(nomem, nostack, preserves_flags));
 }
 
 #[inline]
@@ -159,4 +191,11 @@ pub unsafe fn outw(port: u16, value: u16) {
 #[inline]
 pub unsafe fn outl(port: u16, value: u32) {
     asm!("out dx, eax", in("dx") port, in("eax") value, options(nomem, nostack, preserves_flags));
+}
+
+#[inline]
+pub fn flush_tlb(addr: u64) {
+    unsafe {
+        asm!("invlpg [{}]", in(reg) addr, options(nostack, preserves_flags));
+    }
 }

@@ -3,7 +3,7 @@ use core::fmt::Write;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use volatile::Volatile;
-use x86_64::instructions::interrupts;
+use crate::asm::without_interrupts;
 
 lazy_static! {
     pub static ref WRITER: Mutex<Writer> = {
@@ -179,7 +179,7 @@ macro_rules! println {
 /// Prints the given formatted string to the VGA text buffer through the global `WRITER` instance.
 #[doc(hidden)]
 pub fn _print(args: fmt::Arguments) {
-    interrupts::without_interrupts(|| {
+    without_interrupts(|| {
         WRITER.lock().write_fmt(args).unwrap();
     });
 }

@@ -2,7 +2,7 @@ use core::ops::{Deref, DerefMut};
 
 use super::{FrameAllocator, PhysFrame, PAGE_SIZE};
 use crate::multiboot::elf::ElfSections;
-use crate::{asm::Cr3, debugprintln};
+use crate::{asm::{Cr3, tlb_flush_all}, debugprintln};
 
 mod entry;
 mod mapper;
@@ -96,18 +96,17 @@ impl ActivePageTable {
         F: FnOnce(&mut Mapper),
     {
         {
-            use x86_64::instructions::tlb;
             let backup = PhysFrame::containing_address(Cr3::p4_address());
             // map temporary_page to current p4 table
             let p4_table = temporary_page.map_table_frame(backup.clone(), self);
             // overwrite recursive mapping
             self.p4_mut()[511].set(table.p4_frame.clone(), EntryFlags::PRESENT | EntryFlags::WRITABLE);
-            tlb::flush_all();
+            tlb_flush_all();
             // execute f in the new context
             f(self);
             // restore recursive mapping to original p4 table
             p4_table[511].set(backup, EntryFlags::PRESENT | EntryFlags::WRITABLE);
-            tlb::flush_all();
+            tlb_flush_all();
         }
         temporary_page.unmap(self);
     }
