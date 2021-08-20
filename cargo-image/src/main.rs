@@ -41,7 +41,7 @@ fn main() {
         } else {
             qemu.arg("--cdrom")
                 .arg("mykernel.iso")
-                .arg("-enable-kvm")
+                // .arg("-enable-kvm")
                 .arg("-m")
                 .arg("1G")
                 .arg("-s")

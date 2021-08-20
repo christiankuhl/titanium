@@ -5,7 +5,7 @@ use crate::asm::{load_global_descriptor_table, load_task_state_segment, set_code
 use super::{SegmentSelector, idt::{PrivilegeLevel, DescriptorTablePointer}};
 
 pub const DOUBLE_FAULT_IST_INDEX: u16 = 0;
-const KERNEL_CODE64: u64 = 0x8093000000ffff;
+const KERNEL_CODE64: u64 = 0xaf9b000000ffff;
 const DPL_RING_3: u64 = 3 << 45;
 const PRESENT: u64 = 1 << 47;
 
