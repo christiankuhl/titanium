@@ -1,5 +1,4 @@
 #![no_std]
-#![no_main]
 #![feature(abi_x86_interrupt)]
 #![feature(alloc_error_handler)]
 #![feature(const_mut_refs)]
@@ -7,6 +6,7 @@
 #![feature(asm)]
 #![feature(naked_functions)]
 #![macro_use]
+
 // TEMP:
 #![allow(dead_code)]
 
@@ -22,12 +22,11 @@ mod multiboot;
 mod multitasking;
 mod shell;
 
+pub use multiboot::MultibootInfo;
 use asm::{idle, enable_interrupts};
+pub use drivers::serial::_print as _serial_print;
 
-#[no_mangle]
-pub extern "C" fn kernel_main(multiboot_info: &multiboot::MultibootInfo) -> ! {
-    debugprintln!("Entering Rust kernel...");
-
+pub fn init(multiboot_info: &multiboot::MultibootInfo) -> ! {
     interrupts::init();
     
     debugprintln!("\nConfiguring physical memory...");
@@ -49,28 +48,11 @@ pub extern "C" fn kernel_main(multiboot_info: &multiboot::MultibootInfo) -> ! {
     idle();
 }
 
-fn overflow_stack() {
-    let temp = [1u8; 4096];
-    println!("{:?}", temp);
-    overflow_stack();
-}
-
-fn divide_by_zero() {
-    unsafe {
-        asm!("mov dx, 0; div dx");
-    }
-}
-
-fn page_fault() {
-    unsafe {
-        *(0xdeadbeef as *mut u8) = 3;
-    }
-}
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     println!("{}", info);
-    idle();
+    asm::idle();
 }
 
 #[alloc_error_handler]
