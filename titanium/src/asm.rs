@@ -69,7 +69,7 @@ pub fn idle() -> ! {
 pub fn code_segment_selector() -> SegmentSelector {
     let segment: u16;
     unsafe {
-        asm!("mov {}, cs", out(reg) segment, options(nomem, nostack, preserves_flags));
+        asm!("mov {:r}, cs", out(reg) segment, options(nomem, nostack, preserves_flags));
     };
     SegmentSelector(segment)
 }

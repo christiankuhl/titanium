@@ -8,7 +8,7 @@
 #![feature(naked_functions)]
 #![macro_use]
 // TEMP:
-// #![allow(dead_code)]
+#![allow(dead_code)]
 
 extern crate alloc;
 

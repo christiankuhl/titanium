@@ -22,10 +22,8 @@ lazy_static! {
         idt.set_handler(DivideError as u8, handler!(divide_by_zero_handler));
         idt.set_handler(Breakpoint as u8, handler!(breakpoint_handler));
         idt.set_handler(PageFault as u8, handler_with_error_code!(page_fault_handler));
-        unsafe {
-            idt.set_handler(DoubleFault as u8, handler_with_error_code!(double_fault_handler))
-                .set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX);
-        }
+        idt.set_handler(DoubleFault as u8, handler_with_error_code!(double_fault_handler))
+            .set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX);
         idt.set_handler(Timer as u8, handler!(timer_interrupt_handler));
         idt.set_handler(Keyboard as u8, handler!(keyboard_interrupt_handler));
         idt.set_handler(Mouse as u8, handler!(mouse_interrupt_handler));
@@ -35,9 +33,6 @@ lazy_static! {
 
 #[no_mangle]
 extern "C" fn divide_by_zero_handler(stack_frame: &InterruptStackFrame) -> ! {
-    let x = (1u64, 2u64, 3u64);
-    let y = Some(x);
-    for i in (0..100).map(|z| (z, z - 1)) {}
     println!("EXCEPTION: DIVIDE BY ZERO");
     println!("{:#?}", stack_frame);
     idle();
@@ -63,15 +58,8 @@ extern "C" fn double_fault_handler(stack_frame: &InterruptStackFrame, _error_cod
 }
 
 #[no_mangle]
-extern "C" fn timer_interrupt_handler(mut stack_frame: &InterruptStackFrame) {
+extern "C" fn timer_interrupt_handler(_stack_frame: &InterruptStackFrame) {
     unsafe {
-        // let mut taskmgr = TASKMANAGER.lock();
-        // let new_stack = taskmgr.switch_task(CPUState::from_stack_frame(&stack_frame));
-        // stack_frame.as_mut().extract_inner().instruction_pointer = new_stack.instruction_pointer;
-        // stack_frame.as_mut().extract_inner().code_segment = new_stack.code_segment;
-        // stack_frame.as_mut().extract_inner().cpu_flags = new_stack.cpu_flags;
-        // stack_frame.as_mut().extract_inner().stack_pointer = new_stack.stack_pointer;
-        // stack_frame.as_mut().extract_inner().stack_segment = new_stack.stack_segment;
         PICS.lock().notify_end_of_interrupt(Interrupt::Timer as u8);
     }
 }

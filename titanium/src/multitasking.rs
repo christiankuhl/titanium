@@ -2,7 +2,6 @@ use alloc::boxed::Box;
 use core::fmt::Debug;
 use lazy_static::lazy_static;
 
-use crate::println;
 use crate::interrupts::InterruptStackFrame;
 
 lazy_static! {

@@ -18,16 +18,12 @@ impl PCIController {
         Self { ctrl_port: 0xcf8, data_port: 0xcfc }
     }
     fn read(&mut self, bdf: BDF, offset: u8) -> RegisterValue {
-        unsafe {
-            self.ctrl_port_write(bdf.id(offset));
-            RegisterValue(self.data_port_read() >> (8 * (offset % 4)))
-        }
+        self.ctrl_port_write(bdf.id(offset));
+        RegisterValue(self.data_port_read() >> (8 * (offset % 4)))
     }
     fn write(&mut self, bdf: BDF, offset: u8, value: RegisterValue) {
-        unsafe {
-            self.ctrl_port_write(bdf.id(offset));
-            self.data_port_write(value.into());
-        }
+        self.ctrl_port_write(bdf.id(offset));
+        self.data_port_write(value.into());
     }
     #[inline]
     fn ctrl_port_read(&self) -> u32 {

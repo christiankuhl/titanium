@@ -94,7 +94,7 @@ impl GlobalDescriptorTable {
         }
     }
     #[inline]
-    pub fn add_entry(&mut self, entry: Descriptor) -> SegmentSelector {
+    fn add_entry(&mut self, entry: Descriptor) -> SegmentSelector {
         let index = match entry {
             Descriptor::UserSegment(value) => self.push(value),
             Descriptor::SystemSegment(value_low, value_high) => {
