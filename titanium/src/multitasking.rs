@@ -58,17 +58,17 @@ impl TaskManager {
         self.current_task = Some(0);
     }
 
-    pub fn switch_task(&mut self, cpu_state: InterruptStackFrame) -> InterruptStackFrame {
-        println!("Switch to {:?}", self.current_task);
-        if self.num_tasks == 0 {
-            return cpu_state;
-        }
-        if let Some(mut task) = self.current_task {
-            self.tasks[task].as_mut().unwrap().cpu_state = cpu_state;
-            task = (task + 1) % self.num_tasks;
-            return self.tasks[task].as_ref().unwrap().cpu_state;
-        } else {
-            panic!("No active tasks!")
-        }
-    }
+    // pub fn switch_task(&mut self, cpu_state: InterruptStackFrame) -> InterruptStackFrame {
+    //     println!("Switch to {:?}", self.current_task);
+    //     if self.num_tasks == 0 {
+    //         return cpu_state;
+    //     }
+    //     if let Some(mut task) = self.current_task {
+    //         self.tasks[task].as_mut().unwrap().cpu_state = cpu_state;
+    //         task = (task + 1) % self.num_tasks;
+    //         return self.tasks[task].as_ref().unwrap().cpu_state;
+    //     } else {
+    //         panic!("No active tasks!")
+    //     }
+    // }
 }
