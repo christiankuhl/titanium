@@ -55,6 +55,6 @@ cargo toolchain
 ```
 3. Build/run the kernel itself
 ```
-cd titanium
+cd kernel
 cargo run
 ```
