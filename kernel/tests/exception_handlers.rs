@@ -1,25 +1,24 @@
 #![no_std]
 #![no_main]
 #![feature(custom_test_frameworks)]
-#![test_runner(kernel::testing::test_runner)]
+#![test_runner(test_runner)]
 #![feature(asm)]
-#![reexport_test_harness_main = "test_main"]
+#![reexport_test_harness_main="test_main"]
 
 use core::panic::PanicInfo;
 
+use kernel::*;
+
 #[no_mangle]
 pub extern "C" fn kernel_main(multiboot_info: &kernel::MultibootInfo) -> ! {
-    kernel::debugprintln!("--------------------------------------------------------------------------------");
-    kernel::debugprintln!("| Testing exception handlers...                                                |");
-    kernel::debugprintln!("--------------------------------------------------------------------------------");
-    kernel::init(multiboot_info);
+    init(multiboot_info);
     test_main();
-    kernel::idle();
+    idle();
 }
 
 fn overflow_stack() {
     let temp = [1u8; 4096];
-    kernel::println!("{:?}", temp);
+    println!("{:?}", temp);
     overflow_stack();
 }
 
@@ -38,4 +37,8 @@ fn page_fault() {
 
 fn panic(info: &PanicInfo) -> ! {
     kernel::testing::panic_handler(info);
+}
+
+fn test_runner(tests: &[&dyn testing::Testable]) {
+    testing::test_runner_with_title(tests, "Testing exception handlers...")
 }

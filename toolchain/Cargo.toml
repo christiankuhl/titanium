@@ -1,0 +1,15 @@
+[package]
+name = "toolchain"
+version = "0.1.0"
+edition = "2018"
+authors =  ["christian.kuhl84@gmail.com"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[[bin]]
+name = "cargo-image"
+path = "src/image.rs"
+
+[[bin]]
+name = "cargo-debug"
+path = "src/debug.rs"

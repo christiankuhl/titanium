@@ -34,9 +34,12 @@ fn align_up(addr: usize, align: usize) -> usize {
 }
 
 pub fn init(active_table: &mut ActivePageTable, frame_allocator: &mut RegionFrameAllocator) {
-    debugprintln!("\nInitialising heap...");
-    debugprintln!("    Heap start: {:#x}", HEAP_START);
-    debugprintln!("    Heap end: {:#x}", HEAP_START + HEAP_SIZE - 1);
+    #[cfg(not(test))] 
+    {
+        debugprintln!("\nInitialising heap...");
+        debugprintln!("    Heap start: {:#x}", HEAP_START);
+        debugprintln!("    Heap end: {:#x}", HEAP_START + HEAP_SIZE - 1);
+    }
     let page_range = {
         let heap_start_page = Page::containing_address(HEAP_START);
         let heap_end_page = Page::containing_address(HEAP_START + HEAP_SIZE - 1);

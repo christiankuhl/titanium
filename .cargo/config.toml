@@ -1,6 +1,2 @@
 [alias]
-kbuild = ["build", "--manifest-path=titanium/Cargo.toml", 
-                    "-Zbuild-std-features=compiler-builtins-mem",
-                    "-Zbuild-std=core,compiler_builtins,alloc",
-                    "--target=titanium/x86_64-titanium.json",]
-ibuild = ["install", "--path=cargo-image"]
+toolchain = ["install", "--path=toolchain/"]
