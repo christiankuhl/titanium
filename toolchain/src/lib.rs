@@ -4,7 +4,7 @@ use std::io::Write;
 
 pub fn build_bootimage(kernel_binary: &str, test: bool) {
     if !test {
-        println!("Producing bootable image for {}", kernel_binary);
+        println!("\nProducing bootable image for {}", kernel_binary);
     }
     Command::new("mkdir").arg("iso").status().unwrap();
     Command::new("mkdir").arg("iso/boot").status().unwrap();
@@ -28,10 +28,13 @@ pub fn build_bootimage(kernel_binary: &str, test: bool) {
 pub fn start_qemu(kernel_binary: &str, test: bool, debug: bool) {
     let mut args = vec![
         "--cdrom", "titanium.iso",
-        "-enable-kvm",
         "-m", "1G",
     ];
-    if debug { args.extend(vec!["-s", "-S"]) };
+    if debug { 
+        args.extend(vec!["-s", "-S"]) 
+    } else {
+        args.push("-enable-kvm")
+    };
     if test {
         args.extend(
             vec![
