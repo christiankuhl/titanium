@@ -28,7 +28,7 @@ pub extern "C" fn kernel_main(multiboot_info: &MultibootInfo) -> ! {
         scheduler.add_thread(shell);
         scheduler.start();
     }
-    println!("Hello, world!\nHow are you on this most glorious of days?\n");
+    
     enable_interrupts();
     
     idle();
