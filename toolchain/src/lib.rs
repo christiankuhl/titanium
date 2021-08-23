@@ -1,6 +1,7 @@
 use std::process::{Command, Stdio, exit};
 use std::fs::File;
 use std::io::Write;
+use std::env::Args;
 
 pub fn build_bootimage(kernel_binary: &str, test: bool) {
     if !test {
@@ -25,7 +26,7 @@ pub fn build_bootimage(kernel_binary: &str, test: bool) {
     Command::new("rm").arg("-rf").arg("iso").status().unwrap();
 }
 
-pub fn start_qemu(kernel_binary: &str, test: bool, debug: bool) {
+pub fn start_qemu(kernel_binary: &str, test: bool, debug: bool, add_args: Args) {
     let mut args = vec![
         "--cdrom", "titanium.iso",
         "-m", "1G",
@@ -43,6 +44,9 @@ pub fn start_qemu(kernel_binary: &str, test: bool, debug: bool) {
             "-display", "none"
             ]) 
     }
+    let add_args = add_args.collect::<Vec<String>>();
+    let add_args: Vec<&str> = add_args.iter().map(|s| &**s).collect();
+    args.extend(add_args);
     let mut child = Command::new("qemu-system-x86_64").args(args).spawn().expect("Failed to run QEMU");
     if debug {
         Command::new("rust-gdb").arg(&kernel_binary).arg("-ex").arg("source debug.gdb").status().unwrap();
