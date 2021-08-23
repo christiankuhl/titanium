@@ -75,7 +75,7 @@ extern "C" fn timer_interrupt_handler(_stack_frame: &mut InterruptStackFrame, rs
 }
 
 #[no_mangle]
-extern "C" fn keyboard_interrupt_handler(stack_frame: &InterruptStackFrame, rsp: u64) -> u64 {
+extern "C" fn keyboard_interrupt_handler(_stack_frame: &InterruptStackFrame, rsp: u64) -> u64 {
     let mut keyboard = KEYBOARD.lock();
     let scancode: u8 = unsafe { inb(0x60) };
     if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
@@ -94,7 +94,7 @@ extern "C" fn keyboard_interrupt_handler(stack_frame: &InterruptStackFrame, rsp:
 }
 
 #[no_mangle]
-extern "C" fn mouse_interrupt_handler(stack_frame: &InterruptStackFrame, rsp: u64) -> u64 {
+extern "C" fn mouse_interrupt_handler(_stack_frame: &InterruptStackFrame, rsp: u64) -> u64 {
     let mut mouse = MOUSE.lock();
     let data: u8 = unsafe { inb(0x60) };
     mouse.add_byte(data as i8);
