@@ -13,6 +13,8 @@ name = "kernel"
 [[bin]]
 name = "titanium"
 
+[features]
+test_qemu_headless = []
 
 [dependencies]
 volatile = "0.2.6"

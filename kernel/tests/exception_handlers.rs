@@ -5,8 +5,6 @@
 #![feature(asm)]
 #![reexport_test_harness_main="test_main"]
 
-use core::panic::PanicInfo;
-
 use kernel::*;
 
 #[no_mangle]
@@ -22,22 +20,20 @@ fn overflow_stack() {
     overflow_stack();
 }
 
-#[test_case]
+// #[test_case]
 fn divide_by_zero() {
     unsafe {
         asm!("mov dx, 0; div dx");
     }
 }
 
+// #[test_case]
 fn page_fault() {
     unsafe {
         *(0xdeadbeef as *mut u8) = 3;
     }
 }
 
-fn panic(info: &PanicInfo) -> ! {
-    kernel::testing::panic_handler(info);
-}
 
 fn test_runner(tests: &[&dyn testing::Testable]) {
     testing::test_runner_with_title(tests, "Testing exception handlers...")

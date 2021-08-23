@@ -32,13 +32,13 @@ pub use asm::{idle, enable_interrupts};
 
 pub fn init(multiboot_info: &multiboot::MultibootInfo) {
     interrupts::init();
-    #[cfg(not(test))]
+    #[cfg(not(feature = "test_qemu_headless"))]
     debugprintln!("\nConfiguring physical memory...");
     memory::init(multiboot_info);
     drivers::init();
 }
 
-#[cfg(not(test))]
+#[cfg(not(feature = "test_qemu_headless"))]
 #[panic_handler]
 pub fn panic(info: &PanicInfo) -> ! {
     println!("{}", info);

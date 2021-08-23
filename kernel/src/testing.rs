@@ -56,7 +56,7 @@ pub fn panic_handler(info: &PanicInfo) -> ! {
     idle()
 }
 
-#[cfg(test)]
+#[cfg(feature = "test_qemu_headless")]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     panic_handler(info)

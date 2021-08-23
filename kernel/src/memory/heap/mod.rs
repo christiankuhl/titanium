@@ -34,7 +34,7 @@ fn align_up(addr: usize, align: usize) -> usize {
 }
 
 pub fn init(active_table: &mut ActivePageTable, frame_allocator: &mut RegionFrameAllocator) {
-    #[cfg(not(test))] 
+    #[cfg(not(feature = "test_qemu_headless"))]
     {
         debugprintln!("\nInitialising heap...");
         debugprintln!("    Heap start: {:#x}", HEAP_START);
