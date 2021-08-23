@@ -6,7 +6,7 @@ use crate::drivers::pic::{PIC_1_OFFSET, PIC_2_OFFSET};
 pub type HandlerFunc = extern "C" fn() -> !;
 
 #[derive(Debug, Clone, Copy)]
-#[repr(C, packed)]
+#[repr(C)]
 pub struct IDTEntry {
     pointer_low: u16,
     gdt_selector: SegmentSelector,

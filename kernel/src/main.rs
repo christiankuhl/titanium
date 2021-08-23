@@ -21,15 +21,15 @@ pub extern "C" fn kernel_main(multiboot_info: &MultibootInfo) -> ! {
     #[cfg(test)]
     test_main();
 
-    let thread1 = multitasking::Thread::new(test1);
-    let thread2 = multitasking::Thread::new(test2);
+    let idle_thread = multitasking::thread::Thread::new(idle);
+    let shell = multitasking::thread::Thread::new(shell::start);
     {
         let mut scheduler = multitasking::SCHEDULER.lock();
-        scheduler.add_thread(thread1);
-        scheduler.add_thread(thread2);
+        scheduler.add_thread(idle_thread);
+        scheduler.add_thread(shell);
         scheduler.start();
     }
-    println!("Hello, world!\nHow are you on this most glorious of days?");
+    println!("Hello, world!\nHow are you on this most glorious of days?\n");
     enable_interrupts();
     
     idle();

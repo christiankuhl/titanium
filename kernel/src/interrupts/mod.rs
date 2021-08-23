@@ -2,7 +2,7 @@ use lazy_static::lazy_static;
 use pc_keyboard::DecodedKey;
 use core::mem::size_of;
 
-use crate::multitasking::CPUState;
+use crate::multitasking::ThreadRegisters;
 use crate::{println, debugprintln, print};
 use crate::asm::{idle, page_fault_linear_address, without_interrupts, inb};
 use crate::drivers::pic::PICS;
@@ -67,7 +67,7 @@ extern "C" fn timer_interrupt_handler(_stack_frame: &mut InterruptStackFrame, rs
     unsafe {
         let new_rsp = {
             let mut scheduler = crate::multitasking::SCHEDULER.lock();
-            let cpu_state = &*(rsp as *const CPUState);
+            let cpu_state = &*(rsp as *const ThreadRegisters);
             scheduler.switch_thread(cpu_state) as *const _ as u64
         };
         PICS.lock().notify_end_of_interrupt(Interrupt::Timer as u8);
