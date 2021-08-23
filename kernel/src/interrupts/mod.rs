@@ -86,7 +86,6 @@ extern "C" fn keyboard_interrupt_handler(_stack_frame: &InterruptStackFrame, rsp
             }
         }
     }
-
     unsafe {
         PICS.lock().notify_end_of_interrupt(Interrupt::Keyboard as u8);
     }
