@@ -1,9 +1,8 @@
 use lazy_static::lazy_static;
 use pc_keyboard::DecodedKey;
-use core::mem::size_of;
 
 use crate::multitasking::ThreadRegisters;
-use crate::{println, debugprintln, print};
+use crate::{println, log, print};
 use crate::asm::{idle, page_fault_linear_address, without_interrupts, inb};
 use crate::drivers::pic::PICS;
 use crate::drivers::keyboard::KEYBOARD;
@@ -112,14 +111,11 @@ extern "C" fn mouse_interrupt_handler(stack_frame: &InterruptStackFrame, rsp: u6
 }
 
 pub fn init() {
-    #[cfg(not(feature = "test_qemu_headless"))]
-    debugprintln!("\nInitialising global descriptor table...");
+    log!("\nInitialising global descriptor table...");
     gdt::init();
-    #[cfg(not(feature = "test_qemu_headless"))]
-    debugprintln!("\nInitialising interrupt descriptor table...");
+    log!("\nInitialising interrupt descriptor table...");
     init_idt();
-    #[cfg(not(feature = "test_qemu_headless"))]
-    debugprintln!("\nInitialising interrupt controller...");
+    log!("\nInitialising interrupt controller...");
     unsafe { PICS.lock().initialize() };
 }
 

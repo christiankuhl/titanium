@@ -2,7 +2,7 @@ use core::ops::{Deref, DerefMut};
 
 use super::{FrameAllocator, PhysFrame, PAGE_SIZE};
 use crate::multiboot::elf::ElfSections;
-use crate::{asm::{Cr3, tlb_flush_all}, debugprintln};
+use crate::{asm::{Cr3, tlb_flush_all}, log};
 
 mod entry;
 mod mapper;
@@ -156,26 +156,21 @@ where
     };
 
     active_table.with(&mut new_table, &mut temporary_page, |mapper| {
-        #[cfg(not(feature = "test_qemu_headless"))]
-        debugprintln!("\nIdentity mapping VGA text buffer at 0xb8000...");
+        log!("\nIdentity mapping VGA text buffer at 0xb8000...");
         let vga_buffer_frame = PhysFrame::containing_address(0xb8000);
         mapper.identity_map(vga_buffer_frame, EntryFlags::WRITABLE, allocator);
-        #[cfg(not(feature = "test_qemu_headless"))]
-        {
-            debugprintln!("\nIdentity mapping multiboot info section...");
-            debugprintln!("    data start: {:#x}", multiboot_start);
-            debugprintln!("    data end: {:#x}", multiboot_end);
-            debugprintln!("    .shstrtab start: {:#x}", shstrtab_start);
-            debugprintln!("    .shstrtab end: {:#x}", shstrtab_end);
-        }
+        log!("\nIdentity mapping multiboot info section...");
+        log!("    data start: {:#x}", multiboot_start);
+        log!("    data end: {:#x}", multiboot_end);
+        log!("    .shstrtab start: {:#x}", shstrtab_start);
+        log!("    .shstrtab end: {:#x}", shstrtab_end);
         for frame in PhysFrame::range_inclusive(
             PhysFrame::containing_address(multiboot_start),
             PhysFrame::containing_address(shstrtab_end - 1),
         ) {
             mapper.identity_map(frame, EntryFlags::PRESENT, allocator);
         }
-        #[cfg(not(feature = "test_qemu_headless"))]
-        debugprintln!("\nIdentity mapping kernel sections...");
+        log!("\nIdentity mapping kernel sections...");
         for (idx, section) in elf_sections.enumerate() {
             if !section.is_allocated() {
                 continue;
@@ -185,8 +180,7 @@ where
             if name.len() > 30 {
                 name = &name[..30];
             }
-            #[cfg(not(feature = "test_qemu_headless"))]
-            debugprintln!(
+            log!(
                 "    [{}] {} addr: 0x{:0x}, size: {:0x}, flags: 0x{:0x}",
                 idx,
                 name,
@@ -206,7 +200,6 @@ where
     // turn the old p4 page into a guard page
     let old_p4_page = Page::containing_address(old_table.p4_frame.start_address());
     active_table.unmap(old_p4_page, allocator);
-    #[cfg(not(feature = "test_qemu_headless"))]
-    debugprintln!("\nKernel stack guard page is at {:#x}...", old_p4_page.start_address());
+    log!("\nKernel stack guard page is at {:#x}...", old_p4_page.start_address());
     active_table
 }

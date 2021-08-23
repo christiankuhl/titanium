@@ -27,7 +27,7 @@ macro_rules! debugprint {
     };
 }
 
-/// Prints to the host through the serial interface, appending a newline.
+/// Prints unconditionally to the host through the serial interface, appending a newline.
 #[macro_export]
 macro_rules! debugprintln {
     () => ($crate::debugprint!("\n"));
@@ -35,3 +35,13 @@ macro_rules! debugprintln {
     ($fmt:expr, $($arg:tt)*) => ($crate::debugprint!(
         concat!($fmt, "\r\n"), $($arg)*));
 }
+
+/// Prints to the host through the serial interface, appending a newline, except when in test
+#[macro_export]
+macro_rules! log {
+    ($($arg:tt)*) => (
+        #[cfg(not(feature = "test_qemu_headless"))]
+        $crate::debugprintln!($($arg)*)
+    );
+}
+

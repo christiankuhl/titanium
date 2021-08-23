@@ -13,8 +13,7 @@ use kernel::*;
 
 #[no_mangle]
 pub extern "C" fn kernel_main(multiboot_info: &MultibootInfo) -> ! {
-    #[cfg(not(feature = "test_qemu_headless"))]
-    debugprintln!("Entering Rust kernel...");
+    log!("Entering Rust kernel...");
 
     init(multiboot_info);
 

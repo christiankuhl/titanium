@@ -22,8 +22,7 @@ impl DriverManager {
 
 pub fn init() {
     // let mut device_manager = drivers::DriverManager::new();
-    #[cfg(not(feature = "test_qemu_headless"))]
-    debugprintln!("\nLooking for PCI devices...");
+    log!("\nLooking for PCI devices...");
     let mut pci = pci::PCIController::new();
     pci.enumerate();
 }

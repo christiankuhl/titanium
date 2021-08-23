@@ -1,4 +1,4 @@
-use crate::{asm::{enable_nxe_bit, enable_write_protect_bit}, debugprintln, memory::paging::remap_kernel, multiboot::MultibootInfo};
+use crate::{asm::{enable_nxe_bit, enable_write_protect_bit}, log, memory::paging::remap_kernel, multiboot::MultibootInfo};
 
 mod heap;
 mod paging;
@@ -57,12 +57,10 @@ pub trait FrameAllocator {
 }
 
 pub fn init(multiboot_info: &MultibootInfo) {
-    #[cfg(not(feature = "test_qemu_headless"))]
-    debugprintln!("\nBootloader left us the following memory areas...");
+    log!("\nBootloader left us the following memory areas...");
     let memory_map = multiboot_info.memory_map();
-    #[cfg(not(feature = "test_qemu_headless"))]
     for region in memory_map.iter() {
-        debugprintln!("    start: 0x{:0x}, length: {:}", region.base_addr, region.length);
+        log!("    start: 0x{:0x}, length: {:}", region.base_addr, region.length);
     }
 
     let kernel_start = multiboot_info.kernel_start();
@@ -71,10 +69,8 @@ pub fn init(multiboot_info: &MultibootInfo) {
     let multiboot_end = multiboot_info.multiboot_end();
     let shstrtab_start = multiboot_info.shstrtab_start();
     let shstrtab_end = multiboot_info.shstrtab_end();
-    #[cfg(not(feature = "test_qemu_headless"))] {
-        debugprintln!("\nStart of kernel: 0x{:x}", kernel_start);
-        debugprintln!("End of kernel: 0x{:x}", kernel_end);
-    }
+    log!("\nStart of kernel: 0x{:x}", kernel_start);
+    log!("End of kernel: 0x{:x}", kernel_end);
 
     let mut allocator = RegionFrameAllocator::new(
         kernel_start,

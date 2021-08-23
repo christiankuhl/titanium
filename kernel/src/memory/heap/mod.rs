@@ -1,4 +1,4 @@
-use crate::debugprintln;
+use crate::log;
 
 use self::fixed_size_block::FixedSizeBlockAllocator;
 use super::{
@@ -34,12 +34,9 @@ fn align_up(addr: usize, align: usize) -> usize {
 }
 
 pub fn init(active_table: &mut ActivePageTable, frame_allocator: &mut RegionFrameAllocator) {
-    #[cfg(not(feature = "test_qemu_headless"))]
-    {
-        debugprintln!("\nInitialising heap...");
-        debugprintln!("    Heap start: {:#x}", HEAP_START);
-        debugprintln!("    Heap end: {:#x}", HEAP_START + HEAP_SIZE - 1);
-    }
+    log!("\nInitialising heap...");
+    log!("    Heap start: {:#x}", HEAP_START);
+    log!("    Heap end: {:#x}", HEAP_START + HEAP_SIZE - 1);
     let page_range = {
         let heap_start_page = Page::containing_address(HEAP_START);
         let heap_end_page = Page::containing_address(HEAP_START + HEAP_SIZE - 1);
