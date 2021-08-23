@@ -21,9 +21,17 @@ pub extern "C" fn kernel_main(multiboot_info: &MultibootInfo) -> ! {
     #[cfg(test)]
     test_main();
 
+    let thread1 = multitasking::Thread::new(test1);
+    let thread2 = multitasking::Thread::new(test2);
+    {
+        let mut scheduler = multitasking::SCHEDULER.lock();
+        scheduler.add_thread(thread1);
+        scheduler.add_thread(thread2);
+        scheduler.start();
+    }
+    println!("Hello, world!\nHow are you on this most glorious of days?");
     enable_interrupts();
     
-    println!("Hello, world!\nHow are you on this most glorious of days?");
     idle();
 }
 
@@ -34,4 +42,16 @@ fn test_runner(tests: &[&dyn testing::Testable]) {
 #[test_case]
 fn basic_boot() {
     assert!(true);
+}
+
+fn test1() {
+    loop {
+        print!(".")
+    }
+}
+
+fn test2() {
+    loop {
+        print!("+")
+    }
 }

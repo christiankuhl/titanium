@@ -1,73 +1,95 @@
 use alloc::boxed::Box;
-use core::fmt::Debug;
+use core::{fmt::Debug, mem::size_of};
 use lazy_static::lazy_static;
 
-use crate::interrupts::InterruptStackFrame;
+use crate::{interrupts::InterruptStackFrame, println};
+
+const THREAD_STACK_SIZE: usize = 4096;
 
 lazy_static! {
-    pub static ref TASKMANAGER: spin::Mutex<TaskManager> = spin::Mutex::new(TaskManager::new());
+    pub static ref SCHEDULER: spin::Mutex<Scheduler<'static>> = spin::Mutex::new(Scheduler::new());
 }
 
 #[derive(Debug)]
-pub struct Task {
+pub struct Thread<'a> {
     stack: Box<[u8; 4096]>,
-    cpu_state: InterruptStackFrame,
+    cpu_state: &'a CPUState,
 }
 
-impl Task {
+impl<'a> Thread<'a> {
     pub fn new(entry_point: fn()) -> Self {
-        let cpu_state = InterruptStackFrame {
-            instruction_pointer: entry_point as u64,
-            code_segment: 0x8,
-            stack_pointer: 0,
-            stack_segment: 0,
-            cpu_flags: 0x202,
-        };
-        let stack = Box::new([0; 4096]);
-        let mut task = Self { stack, cpu_state };
-        let addr = task.stack.as_ptr() as u64 + 4096;
-        task.cpu_state.stack_pointer = addr;
-        task
+        let stack = Box::new([0; THREAD_STACK_SIZE]);
+        let ptr = ((stack.as_ptr() as usize & !0x15) + THREAD_STACK_SIZE - size_of::<CPUState>()) as *mut CPUState;
+        let mut cpu_state = unsafe { &mut *ptr };
+        cpu_state.rflags = 0x202;
+        cpu_state.cs = 0x8;
+        cpu_state.rip = entry_point as u64;
+        cpu_state.rsp = ptr as u64;
+        Self { stack, cpu_state }
     }
 }
 
 #[derive(Debug)]
-pub struct TaskManager {
-    num_tasks: usize,
-    current_task: Option<usize>,
-    tasks: [Option<Task>; 256],
+pub struct Scheduler<'a> {
+    num_threads: usize,
+    current_thread: Option<usize>,
+    threads: [Option<Thread<'a>>; 2],
+    started: bool,
 }
 
-impl TaskManager {
+impl<'a> Scheduler<'a> {
     fn new() -> Self {
-        const INIT: Option<Task> = None;
-        Self { num_tasks: 0, current_task: None, tasks: [INIT; 256] }
+        // const INIT: Option<Thread> = None;
+        Self { num_threads: 0, current_thread: None, threads: [None, None], started: false }
     }
 
-    pub fn add_task(&mut self, task: Task) {
-        if self.num_tasks >= 255 {
+    pub fn add_thread(&mut self, thread: Thread<'a>) {
+        if self.num_threads >= 255 {
             panic!("No more tasks available!")
         } else {
-            self.tasks[self.num_tasks] = Some(task);
-            self.num_tasks += 1;
+            self.threads[self.num_threads] = Some(thread);
+            self.num_threads += 1;
         }
     }
 
     pub fn start(&mut self) {
-        self.current_task = Some(0);
+        self.current_thread = Some(0);
     }
 
-    // pub fn switch_task(&mut self, cpu_state: InterruptStackFrame) -> InterruptStackFrame {
-    //     println!("Switch to {:?}", self.current_task);
-    //     if self.num_tasks == 0 {
-    //         return cpu_state;
-    //     }
-    //     if let Some(mut task) = self.current_task {
-    //         self.tasks[task].as_mut().unwrap().cpu_state = cpu_state;
-    //         task = (task + 1) % self.num_tasks;
-    //         return self.tasks[task].as_ref().unwrap().cpu_state;
-    //     } else {
-    //         panic!("No active tasks!")
-    //     }
-    // }
+    pub fn switch_thread(&mut self, cpu_state: &'a CPUState) -> &'a CPUState {
+        if self.num_threads == 0 {
+            return cpu_state;
+        }
+        if let Some(mut thread) = self.current_thread {
+            if self.started {
+                self.threads[thread].as_mut().unwrap().cpu_state = cpu_state;
+            } else {
+                self.started = true;
+            }
+            thread = (thread + 1) % self.num_threads;
+            self.current_thread = Some(thread);
+            return self.threads[thread].as_ref().unwrap().cpu_state;
+        } else {
+            panic!("No active tasks!")
+        }
+    }
+}
+
+#[derive(Debug)]
+#[repr(C)]
+pub struct CPUState {
+    r11: u64,
+    r10: u64,
+    r9: u64,
+    r8: u64,
+    rdi: u64,
+    rsi: u64,
+    rdx: u64,
+    rcx: u64,
+    rax: u64,
+    rip: u64,
+    cs: u64,
+    rflags: u64,
+    rsp: u64,
+    ss: u64,
 }

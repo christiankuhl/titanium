@@ -7,7 +7,7 @@ use super::{
 };
 
 pub const HEAP_START: usize = 0x4444_4444_0000;
-pub const HEAP_SIZE: usize = 100 * 1024;
+pub const HEAP_SIZE: usize = 100 * 1024 * 1024;
 
 pub mod fixed_size_block;
 pub mod linked_list;

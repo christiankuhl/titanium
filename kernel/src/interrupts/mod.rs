@@ -1,6 +1,8 @@
 use lazy_static::lazy_static;
 use pc_keyboard::DecodedKey;
+use core::mem::size_of;
 
+use crate::multitasking::CPUState;
 use crate::{println, debugprintln, print};
 use crate::asm::{idle, page_fault_linear_address, without_interrupts, inb};
 use crate::drivers::pic::PICS;
@@ -12,8 +14,10 @@ mod gdt;
 #[macro_use]
 mod asm;
 
-use self::idt::{InterruptDescriptorTable, Interrupt};
-pub use self::idt::{DescriptorTablePointer, SegmentSelector};
+use self::idt::InterruptDescriptorTable;
+pub use self::idt::{DescriptorTablePointer, SegmentSelector, Interrupt};
+
+static mut COUNTER: u8 = 0;
 
 lazy_static! {
     pub static ref IDT: InterruptDescriptorTable = {
@@ -34,38 +38,45 @@ lazy_static! {
 #[no_mangle]
 extern "C" fn divide_by_zero_handler(stack_frame: &InterruptStackFrame) -> ! {
     println!("EXCEPTION: DIVIDE BY ZERO");
-    println!("{:#?}", stack_frame);
+    println!("{:#x?}", stack_frame);
     idle();
 }
 
 #[no_mangle]
-extern "C" fn page_fault_handler(stack_frame: &InterruptStackFrame, error_code: u64) {
+extern "C" fn page_fault_handler(stack_frame: &InterruptStackFrame, error_code: u64) -> ! {
     println!("EXCEPTION: PAGE FAULT");
-    println!("Accessed Address: {:?}", page_fault_linear_address());
+    println!("Accessed Address: {:#x?}", page_fault_linear_address());
     println!("Error Code: {:?}", error_code);
-    println!("{:#?}", stack_frame);
+    println!("{:#x?}", stack_frame);
     idle();
 }
 
 #[no_mangle]
-extern "C" fn breakpoint_handler(stack_frame: &InterruptStackFrame) {
-    println!("EXCEPTION: BREAKPOINT\n{:#?}", stack_frame);
+extern "C" fn breakpoint_handler(stack_frame: &InterruptStackFrame, rsp: u64) -> u64 {
+    println!("EXCEPTION: BREAKPOINT\n{:#x?}", stack_frame);
+    rsp
 }
 
 #[no_mangle]
 extern "C" fn double_fault_handler(stack_frame: &InterruptStackFrame, _error_code: u64) -> ! {
-    panic!("EXCEPTION: DOUBLE FAULT\n{:#?}", stack_frame);
+    panic!("EXCEPTION: DOUBLE FAULT\n{:#x?}", stack_frame);
 }
 
 #[no_mangle]
-extern "C" fn timer_interrupt_handler(_stack_frame: &InterruptStackFrame) {
+extern "C" fn timer_interrupt_handler(_stack_frame: &mut InterruptStackFrame, rsp: u64) -> u64 {
     unsafe {
+        let new_rsp = {
+            let mut scheduler = crate::multitasking::SCHEDULER.lock();
+            let cpu_state = &*(rsp as *const CPUState);
+            scheduler.switch_thread(cpu_state) as *const _ as u64
+        };
         PICS.lock().notify_end_of_interrupt(Interrupt::Timer as u8);
+        new_rsp
     }
 }
 
 #[no_mangle]
-extern "C" fn keyboard_interrupt_handler(_stack_frame: &InterruptStackFrame) {
+extern "C" fn keyboard_interrupt_handler(stack_frame: &InterruptStackFrame, rsp: u64) -> u64 {
     let mut keyboard = KEYBOARD.lock();
     let scancode: u8 = unsafe { inb(0x60) };
     if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
@@ -80,10 +91,11 @@ extern "C" fn keyboard_interrupt_handler(_stack_frame: &InterruptStackFrame) {
     unsafe {
         PICS.lock().notify_end_of_interrupt(Interrupt::Keyboard as u8);
     }
+    rsp
 }
 
 #[no_mangle]
-extern "C" fn mouse_interrupt_handler(_stack_frame: &InterruptStackFrame) {
+extern "C" fn mouse_interrupt_handler(stack_frame: &InterruptStackFrame, rsp: u64) -> u64 {
     let mut mouse = MOUSE.lock();
     let data: u8 = unsafe { inb(0x60) };
     mouse.add_byte(data as i8);
@@ -96,28 +108,29 @@ extern "C" fn mouse_interrupt_handler(_stack_frame: &InterruptStackFrame) {
     unsafe {
         PICS.lock().notify_end_of_interrupt(Interrupt::Mouse as u8);
     }
+    rsp
 }
 
 pub fn init() {
-    #[cfg(not(test))]
+    #[cfg(not(feature = "test_qemu_headless"))]
     debugprintln!("\nInitialising global descriptor table...");
     gdt::init();
-    #[cfg(not(test))]
+    #[cfg(not(feature = "test_qemu_headless"))]
     debugprintln!("\nInitialising interrupt descriptor table...");
     init_idt();
-    #[cfg(not(test))]
+    #[cfg(not(feature = "test_qemu_headless"))]
     debugprintln!("\nInitialising interrupt controller...");
     unsafe { PICS.lock().initialize() };
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 #[repr(C)]
 pub struct InterruptStackFrame {
-    pub instruction_pointer: u64,
-    pub code_segment: u64,
-    pub cpu_flags: u64,
-    pub stack_pointer: u64,
-    pub stack_segment: u64,
+    pub rip: u64,
+    pub cs: u64,
+    pub rflags: u64,
+    pub rsp: u64,
+    pub ss: u64,
 }
 
 fn init_idt() {

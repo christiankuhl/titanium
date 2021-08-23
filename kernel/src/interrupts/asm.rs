@@ -14,7 +14,9 @@ macro_rules! handler {
                       push r11
                       mov rdi, rsp
                       add rdi, 9*8
+                      mov rsi, rsp
                       call {}
+                      mov rsp, rax
                       pop r11
                       pop r10
                       pop r9
