@@ -30,6 +30,7 @@ pub fn start_qemu(kernel_binary: &str, test: bool, debug: bool, add_args: Args) 
     let mut args = vec![
         "--cdrom", "titanium.iso",
         "-m", "1G",
+        "-smp", "1",
     ];
     if debug { 
         args.extend(vec!["-s", "-S"]) 
