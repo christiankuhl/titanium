@@ -26,10 +26,6 @@ impl PCIController {
         self.data_port_write(value.into());
     }
     #[inline]
-    fn ctrl_port_read(&self) -> u32 {
-        unsafe { inl(self.ctrl_port) }
-    }
-    #[inline]
     fn ctrl_port_write(&self, value: u32) {
         unsafe { outl(self.ctrl_port, value) }
     }
@@ -116,7 +112,7 @@ impl PCIController {
 }
 
 #[derive(Copy, Clone, Debug)]
-struct IOBAR(u32);
+pub struct IOBAR(u32);
 
 impl IOBAR {
     pub fn port_number(&self) -> u32 {
@@ -125,7 +121,7 @@ impl IOBAR {
 }
 
 #[derive(Copy, Clone, Debug)]
-struct MemoryMappedBAR(u32, u32, u64);
+pub struct MemoryMappedBAR(u32, u32, u64);
 
 impl MemoryMappedBAR {
     pub fn prefetchable(&self) -> bool {
@@ -145,7 +141,7 @@ impl MemoryMappedBAR {
         match self.size() {
             BARSize::Bit20 => (self.0 & 0xfffff0) as usize,
             BARSize::Bit32 => (self.0 & 0xfffff0) as usize,
-            BARSize::Bit64 => ((self.0 & 0xfffff0) | (self.1 << 32)) as usize,
+            BARSize::Bit64 => ((self.0 & 0xfffff0) as usize | ((self.1 as usize) << 32)),
         }
     }
     pub fn configure(&mut self, bdf: BDF, offset: u8, pci: &mut PCIController) {
@@ -224,7 +220,7 @@ impl BaseAddressRegisters {
 }
 
 #[derive(PartialEq)]
-enum BARSize {
+pub enum BARSize {
     Bit32,
     Bit20,
     Bit64,
@@ -273,7 +269,7 @@ impl PCIDevice {
     }
 }
 
-struct RegisterValue(u32);
+pub struct RegisterValue(u32);
 
 impl From<u8> for RegisterValue {
     fn from(value: u8) -> RegisterValue {
@@ -340,7 +336,7 @@ impl BitOr for RegisterValue {
 }
 
 #[derive(Copy, Clone, Debug)]
-struct Register<T>(u8, BDF, PhantomData<T>);
+pub struct Register<T>(u8, BDF, PhantomData<T>);
 
 impl<T> Register<T>
 where
@@ -544,7 +540,7 @@ impl PCICardBusBridge {
 }
 
 #[derive(Copy, Clone, Debug)]
-struct BDF {
+pub struct BDF {
     bus: u8,
     device: u8,
     function: u8,

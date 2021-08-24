@@ -1,0 +1,3 @@
+/*
+Defines set of functions used to classify wide characters by their types or to convert between upper and lower case
+*/

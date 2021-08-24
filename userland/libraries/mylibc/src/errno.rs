@@ -1,0 +1,3 @@
+/*
+For testing error codes reported by library functions.
+*/

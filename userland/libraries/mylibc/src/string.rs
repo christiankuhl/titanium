@@ -1,0 +1,3 @@
+/*
+Defines string-handling functions
+*/

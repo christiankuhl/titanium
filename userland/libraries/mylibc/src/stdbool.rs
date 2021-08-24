@@ -1,0 +1,3 @@
+/*
+Defines a boolean data type.
+*/

@@ -1,0 +1,3 @@
+/*
+Defines common mathematical functions.
+*/

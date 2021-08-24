@@ -10,8 +10,6 @@
 #![test_runner(crate::testing::test_runner)]
 #![reexport_test_harness_main = "run_tests"]
 #![macro_use]
-// TEMP:
-#![allow(dead_code)]
 
 extern crate alloc;
 
@@ -25,6 +23,7 @@ pub mod multiboot;
 pub mod multitasking;
 pub mod shell;
 pub mod testing;
+pub mod syscalls;
 
 pub use asm::{enable_interrupts, idle};
 pub use multiboot::MultibootInfo;

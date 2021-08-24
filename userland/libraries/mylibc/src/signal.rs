@@ -1,0 +1,3 @@
+/*
+Defines signal-handling functions.
+*/

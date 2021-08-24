@@ -3,5 +3,6 @@
 members = [
     "kernel",
     "toolchain",
-    "userland/libraries/elf"
+    "userland/libraries/elf",
+    "userland/libraries/mylibc",
 ]

@@ -1,0 +1,3 @@
+/*
+Defines localization functions.
+*/

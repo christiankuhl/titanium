@@ -1,0 +1,3 @@
+/*
+For querying and specifying the alignment of objects.
+*/

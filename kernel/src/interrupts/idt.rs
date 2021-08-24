@@ -115,11 +115,11 @@ impl PrivilegeLevel {
     }
 }
 
-pub struct InterruptDescriptorTable([IDTEntry; 45]);
+pub struct InterruptDescriptorTable([IDTEntry; 129]);
 
 impl InterruptDescriptorTable {
     pub fn new() -> Self {
-        Self([IDTEntry::missing(); 45])
+        Self([IDTEntry::missing(); 129])
     }
     pub fn set_handler(&mut self, entry: u8, handler: HandlerFunc) -> &mut EntryOptions {
         self.0[entry as usize] = IDTEntry::new(code_segment_selector(), handler);
@@ -160,4 +160,5 @@ pub enum Interrupt {
     Timer = PIC_1_OFFSET,
     Keyboard = PIC_1_OFFSET + 1,
     Mouse = PIC_2_OFFSET + 4,
+    Syscall = 0x80,
 }

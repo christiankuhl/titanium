@@ -1,0 +1,3 @@
+/*
+For atomic operations on data shared between threads.
+*/

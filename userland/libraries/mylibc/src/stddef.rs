@@ -1,0 +1,3 @@
+/*
+Defines several useful types and macros.
+*/

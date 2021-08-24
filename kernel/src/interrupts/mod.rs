@@ -28,6 +28,7 @@ lazy_static! {
         idt.set_handler(Timer as u8, handler!(timer_interrupt_handler));
         idt.set_handler(Keyboard as u8, handler!(keyboard_interrupt_handler));
         idt.set_handler(Mouse as u8, handler!(mouse_interrupt_handler));
+        idt.set_handler(Syscall as u8, handler!(syscall_handler));
         idt
     };
 }
@@ -104,6 +105,13 @@ extern "C" fn mouse_interrupt_handler(_stack_frame: &InterruptStackFrame, rsp: u
     }
     rsp
 }
+
+#[no_mangle]
+extern "C" fn syscall_handler(_stack_frame: &InterruptStackFrame, rsp: u64) -> u64 {
+    println!("Received syscall!");
+    rsp
+}
+
 
 pub fn init() {
     log!("\nInitialising global descriptor table...");

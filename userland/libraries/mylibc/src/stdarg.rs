@@ -1,0 +1,3 @@
+/*
+For accessing a varying number of arguments passed to functions.
+*/
