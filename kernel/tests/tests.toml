@@ -1,0 +1,11 @@
+[[test]]
+name = "kernel_stack_overflow"
+features = ["qemu_test_should_panic"]
+
+[[test]]
+name = "page_fault"
+features = ["qemu_test_should_panic"]
+
+[[test]]
+name = "divide_by_zero"
+features = ["qemu_test_should_panic"]

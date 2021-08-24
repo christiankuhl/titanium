@@ -16,11 +16,15 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
     }
 }
 
-pub fn test_runner_with_title(tests: &[&dyn Testable], title: &str) {
+fn banner(title: &str) {
     use AnsiColors::*;
     debugprintln!("{}", Yellow.text("\n╔══════════════════════════════════════════════════════════════════════════════╗"));
     debugprintln!("{}", Yellow.text(&alloc::format!("║ {:<76} ║", title)));
     debugprintln!("{}", Yellow.text("╚══════════════════════════════════════════════════════════════════════════════╝"));
+}
+
+pub fn test_runner_with_title(tests: &[&dyn Testable], title: &str) {
+    banner(title);
     debugprintln!("\nRunning {} tests...", tests.len());
     for test in tests {
         test.run();
@@ -31,6 +35,13 @@ pub fn test_runner_with_title(tests: &[&dyn Testable], title: &str) {
 
 pub fn test_runner(tests: &[&dyn Testable]) {
     test_runner_with_title(tests, "Unit tests for kernel library...")
+}
+
+pub fn single_test(tests: &[&dyn Testable]) {
+    for test in tests {
+        test.run();
+    }
+    exit_qemu(QemuExitCode::Success);
 }
 
 
@@ -66,7 +77,7 @@ pub fn panic_handler(info: &PanicInfo) -> ! {
 
 pub fn should_panic(_info: &PanicInfo) -> ! {
     use AnsiColors::*;
-    debugprintln!("{}", Green.text("[ok]\n"));
+    debugprint!("{}", Green.text("[ok]\n"));
     exit_qemu(QemuExitCode::Success);
     idle()
 }
