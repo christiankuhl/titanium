@@ -1,17 +1,19 @@
+use core::ptr::NonNull;
+
 use super::thread::{Thread, ThreadRegisters};
 
 #[derive(Debug)]
 pub struct Scheduler<'a> {
     num_threads: usize,
     current_thread: Option<usize>,
-    threads: [Option<Thread<'a>>; 2],
+    threads: [Option<Thread<'a>>; 3],
     started: bool,
 }
 
 impl<'a> Scheduler<'a> {
     pub fn new() -> Self {
-        // const INIT: Option<Thread> = None;
-        Self { num_threads: 0, current_thread: None, threads: [None, None], started: false }
+        const INIT: Option<Thread> = None;
+        Self { num_threads: 0, current_thread: None, threads: [None, None, None], started: false }
     }
 
     pub fn add_thread(&mut self, thread: Thread<'a>) {

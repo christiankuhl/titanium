@@ -21,11 +21,13 @@ pub extern "C" fn kernel_main(multiboot_info: &MultibootInfo) -> ! {
     test_main();
 
     let idle_thread = multitasking::thread::Thread::new(idle);
-    let shell = multitasking::thread::Thread::new(shell::start);
+    let shell = multitasking::thread::Thread::new(test2);
+    let test = multitasking::thread::Thread::new(test1);
     {
         let mut scheduler = multitasking::SCHEDULER.lock();
         scheduler.add_thread(idle_thread);
         scheduler.add_thread(shell);
+        scheduler.add_thread(test);
         scheduler.start();
     }
     
@@ -43,14 +45,21 @@ fn basic_boot() {
     assert!(true);
 }
 
-fn test1() {
-    loop {
-        print!(".")
+fn test1() -> ! {
+    // let mut x = 0;
+    // loop {
+    //     x = (x + 1) % 100;
+    //     println!("{}", x);
+    // }
+    for _ in 0..10000 {
+        debugprint!("B")
     }
+    idle();
 }
 
-fn test2() {
-    loop {
-        print!("+")
+fn test2() -> ! {
+    for _ in 0..10000 {
+        debugprint!("A")
     }
+    idle();
 }
