@@ -1,5 +1,5 @@
+use elf::ElfSection;
 use super::PhysFrame;
-use crate::multiboot::elf::ElfSection;
 
 #[derive(Debug)]
 pub struct Entry(u64);

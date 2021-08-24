@@ -1,6 +1,5 @@
 use core::convert::TryInto;
 
-pub mod elf;
 pub mod memory_map;
 
 use elf::*;

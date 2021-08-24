@@ -156,7 +156,7 @@ impl Descriptor {
         // base
         low = (!0xffffff0000 & low) | ((ptr & 0xffffff) << 16);
         low = (!0xff00000000000000 & low) | ((ptr & 0xff000000) << 32);
-        // limit (the `-1` in needed since the bound is inclusive)
+        // limit (the `-1` is needed since the bound is inclusive)
         low = (!0xffff & low) | ((size_of::<TaskStateSegment>() - 1) as u64) & 0xffff;
         // type (0b1001 = available 64-bit tss)
         low = (!0xf0000000000 & low) | (0b1001 << 40);

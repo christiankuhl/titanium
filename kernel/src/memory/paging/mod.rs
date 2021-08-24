@@ -1,7 +1,7 @@
 use core::ops::{Deref, DerefMut};
+use elf::ElfSections;
 
 use super::{FrameAllocator, PhysFrame, PAGE_SIZE};
-use crate::multiboot::elf::ElfSections;
 use crate::{
     asm::{tlb_flush_all, Cr3},
     log,

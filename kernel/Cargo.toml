@@ -23,6 +23,7 @@ spin = "0.5.2"
 uart_16550 = "0.2.0"
 pic8259 = "0.10.1"
 pc-keyboard = "0.5.0"
+elf = { path = "../userland/libraries/elf" }
 
 [dependencies.lazy_static]
 version = "1.0"

@@ -3,4 +3,5 @@
 members = [
     "kernel",
     "toolchain",
+    "userland/libraries/elf"
 ]
