@@ -10,7 +10,8 @@ It's state is currently very rudimentary: We can
 * boot into long mode 
 * print keyboard and mouse input to the VGA text buffer
 * allocate memory on the heap and have paging working
-* enumerate PCI devices.
+* enumerate PCI devices
+* Do elementary task switching.
 
 ## Where are you going with this?
 
