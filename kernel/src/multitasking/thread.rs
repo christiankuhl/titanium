@@ -41,7 +41,8 @@ impl Thread {
             let ptr = alloc(Layout::new::<[u8; THREAD_STACK_SIZE]>()) as *mut [u8; THREAD_STACK_SIZE];
             Box::from_raw(ptr)
         };
-        let registers = ((stack.as_ptr() as usize & !0x15) + THREAD_STACK_SIZE - size_of::<ThreadRegisters>()) as *mut ThreadRegisters;
+        let registers =
+            ((stack.as_ptr() as usize & !0x15) + THREAD_STACK_SIZE - size_of::<ThreadRegisters>()) as *mut ThreadRegisters;
         unsafe {
             (*registers).rflags = 0x202;
             (*registers).cs = 0x8;
@@ -51,6 +52,6 @@ impl Thread {
         Self { tid, stack, ptr: registers as u64 }
     }
     pub fn registers(&mut self) -> *mut ThreadRegisters {
-        return self.ptr as *mut ThreadRegisters
+        return self.ptr as *mut ThreadRegisters;
     }
 }

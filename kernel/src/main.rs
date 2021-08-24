@@ -3,7 +3,6 @@
 #![feature(custom_test_frameworks)]
 #![test_runner(test_runner)]
 #![reexport_test_harness_main = "test_main"]
-
 // TEMP:
 #![allow(dead_code)]
 
@@ -28,9 +27,9 @@ pub extern "C" fn kernel_main(multiboot_info: &MultibootInfo) -> ! {
         scheduler.add_thread(shell);
         scheduler.start();
     }
-    
+
     enable_interrupts();
-    
+
     idle();
 }
 
@@ -42,4 +41,3 @@ fn test_runner(tests: &[&dyn testing::Testable]) {
 fn basic_boot() {
     assert!(true);
 }
-

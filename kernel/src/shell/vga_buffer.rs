@@ -1,9 +1,9 @@
+use crate::asm::without_interrupts;
 use core::fmt;
 use core::fmt::Write;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use volatile::Volatile;
-use crate::asm::without_interrupts;
 
 lazy_static! {
     pub static ref WRITER: Mutex<Writer> = {

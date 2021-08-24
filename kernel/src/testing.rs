@@ -1,7 +1,7 @@
 use core::panic::PanicInfo;
 
-use crate::asm::{outl, idle};
-use crate::{debugprintln, debugprint};
+use crate::asm::{idle, outl};
+use crate::{debugprint, debugprintln};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u32)]
@@ -44,12 +44,13 @@ pub fn single_test(tests: &[&dyn Testable]) {
     exit_qemu(QemuExitCode::Success);
 }
 
-
 pub trait Testable {
     fn run(&self) -> ();
 }
 
-impl<T> Testable for T where T: Fn(),
+impl<T> Testable for T
+where
+    T: Fn(),
 {
     #[cfg(not(feature = "qemu_test_should_panic"))]
     fn run(&self) {
@@ -89,7 +90,6 @@ pub extern "C" fn kernel_main(multiboot_info: &crate::multiboot::MultibootInfo) 
     crate::run_tests();
     crate::idle();
 }
-
 
 #[derive(Clone, Copy)]
 #[repr(u8)]

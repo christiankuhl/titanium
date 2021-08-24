@@ -3,7 +3,7 @@
 #![feature(custom_test_frameworks)]
 #![test_runner(kernel::testing::single_test)]
 #![feature(asm)]
-#![reexport_test_harness_main="test_main"]
+#![reexport_test_harness_main = "test_main"]
 
 use kernel::*;
 

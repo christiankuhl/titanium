@@ -1,5 +1,5 @@
-use std::process::Command;
 use std::env::args;
+use std::process::Command;
 
 fn main() {
     Command::new("cargo").arg("build").status().expect("Build failed!");

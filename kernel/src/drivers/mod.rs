@@ -1,8 +1,7 @@
-
-pub mod mouse;
 pub mod keyboard;
-pub mod pic;
+pub mod mouse;
 pub mod pci;
+pub mod pic;
 #[macro_use]
 pub mod serial;
 

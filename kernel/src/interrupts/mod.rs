@@ -1,20 +1,20 @@
 use lazy_static::lazy_static;
 use pc_keyboard::DecodedKey;
 
+use crate::asm::{inb, page_fault_linear_address, without_interrupts};
+use crate::drivers::keyboard::KEYBOARD;
+use crate::drivers::mouse::{init_mouse, move_mouse_cursor, MouseEvent, MOUSE};
+use crate::drivers::pic::PICS;
 use crate::multitasking::ThreadRegisters;
 use crate::{log, print, println};
-use crate::asm::{page_fault_linear_address, without_interrupts, inb};
-use crate::drivers::pic::PICS;
-use crate::drivers::keyboard::KEYBOARD;
-use crate::drivers::mouse::{MOUSE, init_mouse, move_mouse_cursor, MouseEvent};
 
-mod idt;
 mod gdt;
+mod idt;
 #[macro_use]
 mod asm;
 
 use self::idt::InterruptDescriptorTable;
-pub use self::idt::{DescriptorTablePointer, SegmentSelector, Interrupt};
+pub use self::idt::{DescriptorTablePointer, Interrupt, SegmentSelector};
 
 lazy_static! {
     pub static ref IDT: InterruptDescriptorTable = {
@@ -128,9 +128,3 @@ fn init_idt() {
     IDT.load();
     init_mouse();
 }
-
-
-
-
-
-

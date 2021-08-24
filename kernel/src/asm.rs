@@ -32,7 +32,6 @@ pub fn tlb_flush_all() {
     unsafe { Cr3::write(value) }
 }
 
-
 #[inline]
 pub unsafe fn enable_nxe_bit() {
     let (high, low): (u32, u32);
@@ -86,7 +85,6 @@ pub unsafe fn set_code_segment_selector(sel: SegmentSelector) {
         options(preserves_flags),
     );
 }
-
 
 #[inline]
 pub unsafe fn load_interrupt_descriptor_table(idt: &DescriptorTablePointer) {
@@ -144,7 +142,8 @@ pub fn page_fault_linear_address() -> usize {
 
 #[inline]
 pub fn without_interrupts<F, R>(f: F) -> R
-    where F: FnOnce() -> R,
+where
+    F: FnOnce() -> R,
 {
     let enabled_before = interrupts_enabled();
     if enabled_before {

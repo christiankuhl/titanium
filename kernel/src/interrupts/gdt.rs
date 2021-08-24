@@ -2,7 +2,10 @@ use lazy_static::lazy_static;
 
 use crate::asm::{load_global_descriptor_table, load_task_state_segment, set_code_segment_selector};
 
-use super::{SegmentSelector, idt::{PrivilegeLevel, DescriptorTablePointer}};
+use super::{
+    idt::{DescriptorTablePointer, PrivilegeLevel},
+    SegmentSelector,
+};
 
 pub const DOUBLE_FAULT_IST_INDEX: u16 = 0;
 const KERNEL_CODE64: u64 = 0xaf9b000000ffff;
@@ -88,10 +91,7 @@ impl GlobalDescriptorTable {
     /// Creates an empty GDT.
     #[inline]
     pub const fn new() -> GlobalDescriptorTable {
-        GlobalDescriptorTable {
-            table: [0; 8],
-            next_free: 1,
-        }
+        GlobalDescriptorTable { table: [0; 8], next_free: 1 }
     }
     #[inline]
     fn add_entry(&mut self, entry: Descriptor) -> SegmentSelector {
@@ -106,8 +106,7 @@ impl GlobalDescriptorTable {
 
         let rpl = match entry {
             Descriptor::UserSegment(value) => {
-                if value & DPL_RING_3 > 0
-                {
+                if value & DPL_RING_3 > 0 {
                     PrivilegeLevel::Ring3
                 } else {
                     PrivilegeLevel::Ring0
@@ -133,11 +132,8 @@ impl GlobalDescriptorTable {
 
     #[inline]
     pub fn load(&'static self) {
-        unsafe { 
-            let ptr = DescriptorTablePointer {
-                base: self.table.as_ptr() as u64,
-                limit: (self.next_free * 8 - 1) as u16,
-            };
+        unsafe {
+            let ptr = DescriptorTablePointer { base: self.table.as_ptr() as u64, limit: (self.next_free * 8 - 1) as u16 };
             load_global_descriptor_table(&ptr);
         };
     }

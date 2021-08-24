@@ -39,7 +39,7 @@ macro_rules! handler {
                     pop rcx
                     pop rbx
                     pop rax
-                    iretq", 
+                    iretq",
                     sym $name, options(noreturn));
             }
         }
@@ -77,7 +77,7 @@ macro_rules! handler_with_error_code {
                       pop rcx
                       pop rax
                       add rsp, 8 // pop error code
-                      iretq", 
+                      iretq",
                       sym $name, options(noreturn));
             }
         }

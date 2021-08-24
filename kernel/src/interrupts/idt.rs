@@ -126,10 +126,7 @@ impl InterruptDescriptorTable {
         &mut self.0[entry as usize].options
     }
     pub fn load(&'static self) {
-        let ptr = DescriptorTablePointer {
-            base: self as *const _ as u64,
-            limit: (size_of::<Self>() - 1) as u16,
-        };
+        let ptr = DescriptorTablePointer { base: self as *const _ as u64, limit: (size_of::<Self>() - 1) as u16 };
         unsafe {
             load_interrupt_descriptor_table(&ptr);
         }

@@ -2,8 +2,8 @@ use core::fmt::Display;
 use core::mem::size_of;
 use core::{marker::PhantomData, ops::BitAnd, ops::BitOr, ops::Shl, ops::Shr};
 
-use crate::log;
 use crate::asm::{inl, outl};
+use crate::log;
 
 mod devices;
 mod vendors;
@@ -561,7 +561,7 @@ impl BDF {
 }
 
 impl Display for BDF {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> Result<(), core::fmt::Error> { 
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> Result<(), core::fmt::Error> {
         write!(f, "bus {}, device {}, function {}", self.bus, self.device, self.function)
     }
 }

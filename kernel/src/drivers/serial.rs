@@ -1,7 +1,7 @@
+use crate::asm::without_interrupts;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use uart_16550::SerialPort;
-use crate::asm::without_interrupts;
 
 lazy_static! {
     pub static ref SERIAL1: Mutex<SerialPort> = {
@@ -44,4 +44,3 @@ macro_rules! log {
         $crate::debugprintln!($($arg)*)
     );
 }
-

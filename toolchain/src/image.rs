@@ -13,17 +13,13 @@ fn main() {
                     let add_args: Vec<&str> = add_args.iter().map(|s| &**s).collect();
                     toolchain::execute_test_suite(add_args)
                 }
-                Some(kernel_binary) => {
-                    build_and_run(kernel_binary, args)
-                }
+                Some(kernel_binary) => build_and_run(kernel_binary, args),
                 None => {
                     panic!("Not enough arguments provided!")
                 }
             }
-        },
-        Some(kernel_binary) => {
-            build_and_run(kernel_binary, args)
-        },
+        }
+        Some(kernel_binary) => build_and_run(kernel_binary, args),
         None => {
             panic!("Not enough arguments provided!")
         }
@@ -37,4 +33,3 @@ fn build_and_run(kernel_binary: &str, args: Args) {
     let add_args: Vec<&str> = add_args.iter().map(|s| &**s).collect();
     toolchain::start_qemu(kernel_binary, test, false, add_args)
 }
-

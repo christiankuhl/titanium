@@ -10,7 +10,6 @@
 #![test_runner(crate::testing::test_runner)]
 #![reexport_test_harness_main = "run_tests"]
 #![macro_use]
-
 // TEMP:
 #![allow(dead_code)]
 
@@ -27,8 +26,8 @@ pub mod multitasking;
 pub mod shell;
 pub mod testing;
 
+pub use asm::{enable_interrupts, idle};
 pub use multiboot::MultibootInfo;
-pub use asm::{idle, enable_interrupts};
 
 pub fn init(multiboot_info: &multiboot::MultibootInfo) {
     interrupts::init();

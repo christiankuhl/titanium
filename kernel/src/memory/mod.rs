@@ -1,4 +1,9 @@
-use crate::{asm::{enable_nxe_bit, enable_write_protect_bit}, log, memory::paging::remap_kernel, multiboot::MultibootInfo};
+use crate::{
+    asm::{enable_nxe_bit, enable_write_protect_bit},
+    log,
+    memory::paging::remap_kernel,
+    multiboot::MultibootInfo,
+};
 
 mod heap;
 mod paging;
@@ -92,7 +97,7 @@ pub fn init(multiboot_info: &MultibootInfo) {
         shstrtab_start,
         shstrtab_end,
     );
-    
+
     unsafe {
         enable_write_protect_bit();
     }

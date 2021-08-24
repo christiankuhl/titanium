@@ -1,10 +1,10 @@
 use lazy_static::lazy_static;
 
-pub mod thread;
 mod scheduler;
+pub mod thread;
 
-pub use thread::ThreadRegisters;
 use scheduler::Scheduler;
+pub use thread::ThreadRegisters;
 
 lazy_static! {
     pub static ref SCHEDULER: spin::Mutex<Scheduler> = spin::Mutex::new(Scheduler::new());

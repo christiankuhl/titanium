@@ -28,7 +28,9 @@ impl<'a> Scheduler {
         }
         if self.started {
             let regs = self.threads.front_mut().unwrap().registers();
-            unsafe { *regs = *cpu_state; }
+            unsafe {
+                *regs = *cpu_state;
+            }
         } else {
             self.started = true;
         }

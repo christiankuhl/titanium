@@ -9,6 +9,4 @@ pub fn start() -> ! {
     idle();
 }
 
-struct Shell {
-    
-}
+struct Shell {}
