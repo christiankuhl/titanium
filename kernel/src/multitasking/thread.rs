@@ -23,32 +23,34 @@ pub struct ThreadRegisters {
     rax: u64,
     rip: u64,
     cs: u64,
-    rflags: u64,
+    pub rflags: u64,
     rsp: u64,
     ss: u64,
 }
 
 #[derive(Debug)]
-pub struct Thread<'a> {
+pub struct Thread {
+    pub tid: u64,
     stack: Box<[u8; THREAD_STACK_SIZE]>,
-    pub registers: &'a ThreadRegisters,
+    ptr: u64,
 }
 
-impl<'a> Thread<'a> {
-    pub fn new(entry_point: fn() -> !) -> Self {
+impl Thread {
+    pub fn new(tid: u64, entry_point: fn() -> !) -> Self {
         let stack = unsafe {
             let ptr = alloc(Layout::new::<[u8; THREAD_STACK_SIZE]>()) as *mut [u8; THREAD_STACK_SIZE];
             Box::from_raw(ptr)
         };
-        let ptr = ((stack.as_ptr() as usize & !0x15) + THREAD_STACK_SIZE - size_of::<ThreadRegisters>()) as *mut ThreadRegisters;
-        let mut registers = unsafe { &mut *ptr };
-        registers.rflags = 0x202;
-        registers.cs = 0x8;
-        registers.rip = entry_point as u64;
-        registers.rsp = ptr as u64;
-        Self { stack, registers }
+        let registers = ((stack.as_ptr() as usize & !0x15) + THREAD_STACK_SIZE - size_of::<ThreadRegisters>()) as *mut ThreadRegisters;
+        unsafe {
+            (*registers).rflags = 0x202;
+            (*registers).cs = 0x8;
+            (*registers).rip = entry_point as u64;
+            (*registers).rsp = registers as u64;
+        }
+        Self { tid, stack, ptr: registers as u64 }
     }
-    pub fn stack_top(&self) -> usize {
-        (self.stack.as_ptr() as usize & !0x15) + THREAD_STACK_SIZE - size_of::<ThreadRegisters>()
+    pub fn registers(&mut self) -> *mut ThreadRegisters {
+        return self.ptr as *mut ThreadRegisters
     }
 }

@@ -2,7 +2,7 @@ use lazy_static::lazy_static;
 use pc_keyboard::DecodedKey;
 
 use crate::multitasking::ThreadRegisters;
-use crate::{debugprintln, enable_interrupts, log, print, println};
+use crate::{log, print, println};
 use crate::asm::{idle, page_fault_linear_address, without_interrupts, inb};
 use crate::drivers::pic::PICS;
 use crate::drivers::keyboard::KEYBOARD;
@@ -15,8 +15,6 @@ mod asm;
 
 use self::idt::InterruptDescriptorTable;
 pub use self::idt::{DescriptorTablePointer, SegmentSelector, Interrupt};
-
-static mut COUNTER: u8 = 0;
 
 lazy_static! {
     pub static ref IDT: InterruptDescriptorTable = {
@@ -64,19 +62,12 @@ extern "C" fn double_fault_handler(stack_frame: &InterruptStackFrame, _error_cod
 #[no_mangle]
 extern "C" fn timer_interrupt_handler(_stack_frame: &mut InterruptStackFrame, rsp: u64) -> u64 {
     unsafe {
-        if COUNTER > 4 {
-            panic!();
-        } else {
-            COUNTER += 1;
-        }
         let new_rsp = {
             let mut scheduler = crate::multitasking::SCHEDULER.lock();
-            let cpu_state = &*(rsp as *const ThreadRegisters);
+            let cpu_state = rsp as *mut ThreadRegisters;
             scheduler.switch_thread(cpu_state) as *const _ as u64
         };
         PICS.lock().notify_end_of_interrupt(Interrupt::Timer as u8);
-        // debugprintln!("{:x?}", _stack_frame);
-        // debugprintln!("{:x?}", *(rsp as *const ThreadRegisters));
         new_rsp
     }
 }

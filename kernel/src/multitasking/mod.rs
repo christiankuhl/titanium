@@ -7,5 +7,5 @@ pub use thread::ThreadRegisters;
 use scheduler::Scheduler;
 
 lazy_static! {
-    pub static ref SCHEDULER: spin::Mutex<Scheduler<'static>> = spin::Mutex::new(Scheduler::new());
+    pub static ref SCHEDULER: spin::Mutex<Scheduler> = spin::Mutex::new(Scheduler::new());
 }

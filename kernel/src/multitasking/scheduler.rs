@@ -1,49 +1,40 @@
-use core::ptr::NonNull;
+use alloc::collections::VecDeque;
 
 use super::thread::{Thread, ThreadRegisters};
 
 #[derive(Debug)]
-pub struct Scheduler<'a> {
-    num_threads: usize,
-    current_thread: Option<usize>,
-    threads: [Option<Thread<'a>>; 3],
+pub struct Scheduler {
+    threads: VecDeque<Thread>,
+    current_tid: Option<u64>,
     started: bool,
 }
 
-impl<'a> Scheduler<'a> {
+impl<'a> Scheduler {
     pub fn new() -> Self {
-        const INIT: Option<Thread> = None;
-        Self { num_threads: 0, current_thread: None, threads: [None, None, None], started: false }
-    }
-
-    pub fn add_thread(&mut self, thread: Thread<'a>) {
-        if self.num_threads >= 255 {
-            panic!("No more tasks available!")
-        } else {
-            self.threads[self.num_threads] = Some(thread);
-            self.num_threads += 1;
-        }
+        Self { threads: VecDeque::new(), current_tid: None, started: false }
     }
 
     pub fn start(&mut self) {
-        self.current_thread = Some(0);
+        self.current_tid = Some(0);
     }
 
-    pub fn switch_thread(&mut self, cpu_state: &'a ThreadRegisters) -> &'a ThreadRegisters {
-        if self.num_threads == 0 {
+    pub fn add_thread(&mut self, thread: Thread) {
+        self.threads.push_back(thread);
+    }
+
+    pub fn switch_thread(&mut self, cpu_state: *mut ThreadRegisters) -> *mut ThreadRegisters {
+        if self.threads.len() == 0 {
             return cpu_state;
         }
-        if let Some(mut thread) = self.current_thread {
-            if self.started {
-                self.threads[thread].as_mut().unwrap().registers = cpu_state;
-            } else {
-                self.started = true;
-            }
-            thread = (thread + 1) % self.num_threads;
-            self.current_thread = Some(thread);
-            return self.threads[thread].as_ref().unwrap().registers;
+        if self.started {
+            let regs = self.threads.front_mut().unwrap().registers();
+            unsafe { *regs = *cpu_state; }
         } else {
-            panic!("No active tasks!")
+            self.started = true;
         }
+        self.threads.rotate_left(1);
+        let new_thread = self.threads.front_mut().unwrap();
+        self.current_tid = Some(new_thread.tid);
+        new_thread.registers()
     }
 }
