@@ -14,7 +14,8 @@ name = "kernel"
 name = "titanium"
 
 [features]
-test_qemu_headless = []
+qemu_test = []
+qemu_test_should_panic = []
 
 [dependencies]
 volatile = "0.2.6"

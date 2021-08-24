@@ -37,11 +37,17 @@ pub fn init(multiboot_info: &multiboot::MultibootInfo) {
     drivers::init();
 }
 
-#[cfg(not(feature = "test_qemu_headless"))]
 #[panic_handler]
 pub fn panic(info: &PanicInfo) -> ! {
-    println!("{}", info);
-    idle();
+    #[cfg(not(any(feature = "qemu_test", feature = "qemu_test_should_panic")))]
+    {
+        println!("{}", info);
+        idle();
+    }
+    #[cfg(feature = "qemu_test")]
+    testing::panic_handler(info);
+    #[cfg(feature = "qemu_test_should_panic")]
+    testing::should_panic(info);
 }
 
 #[alloc_error_handler]

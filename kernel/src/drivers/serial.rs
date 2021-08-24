@@ -40,7 +40,7 @@ macro_rules! debugprintln {
 #[macro_export]
 macro_rules! log {
     ($($arg:tt)*) => (
-        #[cfg(not(feature = "test_qemu_headless"))]
+        #[cfg(not(any(feature = "qemu_test", feature = "qemu_test_should_panic")))]
         $crate::debugprintln!($($arg)*)
     );
 }

@@ -40,11 +40,19 @@ pub trait Testable {
 
 impl<T> Testable for T where T: Fn(),
 {
+    #[cfg(not(feature = "qemu_test_should_panic"))]
     fn run(&self) {
         use AnsiColors::*;
         debugprint!("{}...\t", core::any::type_name::<T>());
         self();
         debugprintln!("{}", Green.text("[ok]"));
+    }
+    #[cfg(feature = "qemu_test_should_panic")]
+    fn run(&self) {
+        use AnsiColors::*;
+        debugprint!("{}...\t", core::any::type_name::<T>());
+        self();
+        debugprintln!("{}", Red.text("[failed]"));
     }
 }
 
@@ -56,10 +64,11 @@ pub fn panic_handler(info: &PanicInfo) -> ! {
     idle()
 }
 
-#[cfg(feature = "test_qemu_headless")]
-#[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
-    panic_handler(info)
+pub fn should_panic(_info: &PanicInfo) -> ! {
+    use AnsiColors::*;
+    debugprintln!("{}", Green.text("[ok]\n"));
+    exit_qemu(QemuExitCode::Success);
+    idle()
 }
 
 #[cfg(test)]

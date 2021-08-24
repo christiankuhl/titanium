@@ -14,26 +14,26 @@ pub extern "C" fn kernel_main(multiboot_info: &kernel::MultibootInfo) -> ! {
     idle();
 }
 
+// #[test_case]
 fn overflow_stack() {
     let temp = [1u8; 4096];
     println!("{:?}", temp);
     overflow_stack();
 }
 
-// #[test_case]
+#[test_case]
 fn divide_by_zero() {
     unsafe {
         asm!("mov dx, 0; div dx");
     }
 }
 
-// #[test_case]
+#[test_case]
 fn page_fault() {
     unsafe {
         *(0xdeadbeef as *mut u8) = 3;
     }
 }
-
 
 fn test_runner(tests: &[&dyn testing::Testable]) {
     testing::test_runner_with_title(tests, "Testing exception handlers...")

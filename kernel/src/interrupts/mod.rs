@@ -3,7 +3,7 @@ use pc_keyboard::DecodedKey;
 
 use crate::multitasking::ThreadRegisters;
 use crate::{log, print, println};
-use crate::asm::{idle, page_fault_linear_address, without_interrupts, inb};
+use crate::asm::{page_fault_linear_address, without_interrupts, inb};
 use crate::drivers::pic::PICS;
 use crate::drivers::keyboard::KEYBOARD;
 use crate::drivers::mouse::{MOUSE, init_mouse, move_mouse_cursor, MouseEvent};
@@ -35,8 +35,7 @@ lazy_static! {
 #[no_mangle]
 extern "C" fn divide_by_zero_handler(stack_frame: &InterruptStackFrame) -> ! {
     println!("EXCEPTION: DIVIDE BY ZERO");
-    println!("{:#x?}", stack_frame);
-    idle();
+    panic!("{:#x?}", stack_frame);
 }
 
 #[no_mangle]
@@ -44,8 +43,7 @@ extern "C" fn page_fault_handler(stack_frame: &InterruptStackFrame, error_code: 
     println!("EXCEPTION: PAGE FAULT");
     println!("Accessed Address: {:#x?}", page_fault_linear_address());
     println!("Error Code: {:?}", error_code);
-    println!("{:#x?}", stack_frame);
-    idle();
+    panic!("{:#x?}", stack_frame);
 }
 
 #[no_mangle]
