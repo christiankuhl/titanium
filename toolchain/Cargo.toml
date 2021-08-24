@@ -13,3 +13,8 @@ path = "src/image.rs"
 [[bin]]
 name = "cargo-debug"
 path = "src/debug.rs"
+
+[dependencies]
+toml = "0.5.8"
+serde_derive = "1.0"
+serde = "1.0.97"

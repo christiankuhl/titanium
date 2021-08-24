@@ -8,5 +8,7 @@ fn main() {
     let mut add_args = args();
     add_args.next();
     add_args.next();
+    let add_args = add_args.collect::<Vec<String>>();
+    let add_args: Vec<&str> = add_args.iter().map(|s| &**s).collect();
     toolchain::start_qemu(kernel_binary, false, true, add_args)
 }
