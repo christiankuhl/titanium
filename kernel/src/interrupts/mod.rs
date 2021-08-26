@@ -112,7 +112,6 @@ extern "C" fn syscall_handler(_stack_frame: &InterruptStackFrame, rsp: u64) -> u
     rsp
 }
 
-
 pub fn init() {
     log!("\nInitialising global descriptor table...");
     gdt::init();

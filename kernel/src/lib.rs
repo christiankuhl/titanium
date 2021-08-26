@@ -23,8 +23,8 @@ pub mod memory;
 pub mod multiboot;
 pub mod multitasking;
 pub mod shell;
-pub mod testing;
 pub mod syscalls;
+pub mod testing;
 
 pub use asm::{enable_interrupts, idle};
 pub use multiboot::MultibootInfo;
