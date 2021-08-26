@@ -7,6 +7,7 @@
 #![feature(asm)]
 #![feature(naked_functions)]
 #![feature(custom_test_frameworks)]
+#![feature(arbitrary_enum_discriminant)]
 #![test_runner(crate::testing::test_runner)]
 #![reexport_test_harness_main = "run_tests"]
 #![macro_use]
