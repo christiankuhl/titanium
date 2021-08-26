@@ -1,3 +1,19 @@
+use core::mem::size_of;
+
+use super::pci::{BaseAddressRegister, PCIDevice};
+use crate::{
+    memory::{allocate_kernel_region, EntryFlags, Flags, VirtAddr},
+    println,
+};
+use alloc::boxed::Box;
+
+const SATA_DRIVE: u32 = 0x00000101; // SATA drive
+const ATAPI_DRIVE: u32 = 0xEB140101; // SATAPI drive
+const EM_BRIDGE: u32 = 0xC33C0101; // Enclosure management bridge
+const PORT_MULTIPLIER: u32 = 0x96690101; // Port multiplier
+const HBA_PORT_IPM_ACTIVE: u32 = 1;
+const HBA_PORT_DET_PRESENT: u32 = 3;
+
 #[repr(u8)]
 enum FISType {
     // Type of FIS (= Frame Information Structure)
@@ -73,6 +89,123 @@ impl RegisterH2D {
             rsv1: 0,
         }
     }
+}
+
+pub struct AHCIController {
+    pci: Box<PCIDevice>,
+    hba_ptr: VirtAddr,
+}
+
+impl AHCIController {
+    pub fn new(pci: Box<PCIDevice>) -> Self {
+        let hba_ptr = if let BaseAddressRegister::MemoryMapped(abar) = pci.bar[5] {
+            allocate_kernel_region(abar.base_address(), size_of::<HBA>(), EntryFlags::NO_CACHE)
+        } else {
+            unreachable!()
+        };
+        Self { pci, hba_ptr }
+    }
+    pub fn hba(&self) -> &mut HBA {
+        unsafe { &mut *(self.hba_ptr as *mut HBA) }
+    }
+    pub fn enumerate_ports(&self) {
+        let pi = self.hba().control_regs.pi;
+        for idx in 0..32 {
+            let ssts = self.hba().port_regs[idx].ssts;
+            let ipm = (ssts >> 8) & 0xf == HBA_PORT_IPM_ACTIVE;
+            let det = ssts & 0xf == HBA_PORT_DET_PRESENT;
+            if pi & (1 << idx) > 0 && ipm && det {
+                let signature = self.hba().port_regs[idx].sig;
+                match signature {
+                    SATA_DRIVE => println!("SATA drive detected on port {}", idx),
+                    ATAPI_DRIVE => println!("ATAPI drive detected on port {}", idx),
+                    EM_BRIDGE => println!("Enclosure management bridge detected on port {}", idx),
+                    PORT_MULTIPLIER => println!("Port multiplier detected on port {}", idx),
+                    _ => println!("Garbage device signature on port {}", idx),
+                }
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+#[repr(C, packed)]
+struct PortRegisters {
+    clb: u32,  /* Port x Command List Base Address */
+    clbu: u32, /* Port x Command List Base Address Upper 32-Bits */
+    fb: u32,   /* Port x FIS Base Address */
+    fbu: u32,  /* Port x FIS Base Address Upper 32-Bits */
+    is: u32,   /* Port x Interrupt Status */
+    ie: u32,   /* Port x Interrupt Enable */
+    cmd: u32,  /* Port x Command and Status */
+    reserved: u32,
+    tfd: u32,    /* Port x Task File Data */
+    sig: u32,    /* Port x Signature */
+    ssts: u32,   /* Port x Serial ATA Status (SCR0: SStatus) */
+    sctl: u32,   /* Port x Serial ATA Control (SCR2: SControl) */
+    serr: u32,   /* Port x Serial ATA Error (SCR1: SError) */
+    sact: u32,   /* Port x Serial ATA Active (SCR3: SActive) */
+    ci: u32,     /* Port x Command Issue */
+    sntf: u32,   /* Port x Serial ATA Notification (SCR4: SNotification) */
+    fbs: u32,    /* Port x FIS-based Switching Control */
+    devslp: u32, /* Port x Device Sleep */
+    reserved2: [u8; 0x70 - 0x48],
+    vs: [u8; 16], /* Port x Vendor Specific */
+}
+
+#[derive(Debug)]
+#[repr(C, packed)]
+pub struct GenericHostControl {
+    cap: u32, /* Host Capabilities */
+    ghc: u32, /* Global Host Control */
+    is: u32,  /* Interrupt Status */
+    pi: u32,  /* Ports Implemented */
+    version: u32,
+    ccc_ctl: u32,   /* Command Completion Coalescing Control */
+    ccc_ports: u32, /* Command Completion Coalsecing Ports */
+    em_loc: u32,    /* Enclosure Management Location */
+    em_ctl: u32,    /* Enclosure Management Control */
+    cap2: u32,      /* Host Capabilities Extended */
+    bohc: u32,      /* BIOS/OS Handoff Control and Status */
+}
+
+#[derive(Debug)]
+#[repr(C, packed)]
+pub struct HBA {
+    control_regs: GenericHostControl,
+    reserved: [u8; 52],
+    nvmhci: [u8; 64],
+    vendor_specific: [u8; 96],
+    port_regs: [PortRegisters; 32],
+}
+
+#[derive(Debug)]
+#[repr(C, packed)]
+pub struct CommandHeader {
+    attributes: u16,
+    prdtl: u16, /* Physical Region Descriptor Table Length */
+    prdbc: u32, /* Physical Region Descriptor Byte Count */
+    ctba: u32,  /* Command Table Descriptor Base Address */
+    ctbau: u32, /* Command Table Descriptor Base Address Upper 32-bits */
+    reserved: [u32; 4],
+}
+
+#[derive(Debug)]
+#[repr(C, packed)]
+pub struct PhysicalRegionDescriptor {
+    base_low: u32,
+    base_high: u32,
+    reserved: u32,
+    byte_count: u32, /* Bit 31 - Interrupt completion, Bit 0 to 21 - Data Byte Count */
+}
+
+#[derive(Debug)]
+#[repr(C, packed)]
+pub struct CommandTable {
+    command_fis: [u8; 64],
+    atapi_command: [u8; 32],
+    reserved: [u8; 32],
+    descriptors: [PhysicalRegionDescriptor; 5], //FIXME!
 }
 
 // typedef struct tagFIS_REG_D2H

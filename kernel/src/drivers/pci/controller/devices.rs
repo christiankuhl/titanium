@@ -1,4 +1,4 @@
-use super::{BaseAddressRegisters, PCIController, Register, BDF};
+use super::{BaseAddressRegisters, Register, BDF};
 
 #[derive(Copy, Clone, Debug)]
 pub enum PCIDevice {
@@ -38,6 +38,13 @@ impl PCIDevice {
             Self::Standard(device) => device.configure(),
             Self::PCIBridge(device) => device.configure(),
             Self::PCICardBus(device) => device.configure(),
+        }
+    }
+    pub fn inner(&self) -> StandardPCIDevice {
+        if let Self::Standard(device) = self {
+            *device
+        } else {
+            panic!("Illegal method call!")
         }
     }
 }

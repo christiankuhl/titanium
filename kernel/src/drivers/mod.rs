@@ -6,6 +6,8 @@ pub mod pic;
 pub mod serial;
 pub mod ahci;
 
+use ahci::AHCIController;
+
 trait Driver {
     fn init(&mut self);
     fn reset(&mut self) -> u8;
@@ -21,6 +23,12 @@ impl DriverManager {
 }
 
 pub fn init() {
-    log!("\nLooking for PCI devices...");
-    pci::init();
+    use pci::DeviceClassification::*;
+    use pci::*;
+    let mut pci = pci::init();
+    let class = MassStorageController(MassStorage::SerialATA);
+    let mut ahci_controllers = pci.get_devices(class);
+    let mut dev = ahci_controllers.pop().unwrap();
+    let ctrl = AHCIController::new(dev);
+    ctrl.enumerate_ports();
 }

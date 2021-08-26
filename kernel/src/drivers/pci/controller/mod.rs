@@ -2,16 +2,17 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::fmt::Display;
 use core::mem::size_of;
-use core::{marker::PhantomData, ops::BitAnd, ops::BitOr, ops::Shl, ops::Shr};
+use core::{marker::PhantomData, ops::BitAnd, ops::BitOr, ops::Index, ops::Shl, ops::Shr};
 
 use crate::asm::{inl, outl};
-use crate::{debugprintln, log, println};
+use crate::log;
 
 use super::{classification, vendors};
+pub use classification::DeviceClassification;
 
 mod devices;
 
-use devices::PCIDevice;
+pub use devices::StandardPCIDevice as PCIDevice;
 
 const CTRL_PORT: u16 = 0xcf8;
 const DATA_PORT: u16 = 0xcfc;
@@ -24,17 +25,21 @@ impl PCIController {
     pub fn new() -> Self {
         Self { devices: Vec::new() }
     }
+    pub fn get_devices(&mut self, class: DeviceClassification) -> Vec<Box<PCIDevice>> {
+        self.devices.drain_filter(|dev| (dev.common.class_id.read(), dev.common.subclass_id.read()) == class.as_raw()).collect()
+    }
     pub fn discover(&mut self) {
-        let host_device =
-            PCIDevice::new(BDF { bus: 0, device: 0, function: 0 }).unwrap_or_else(|| panic!("No PCI host device found!"));
+        log!("\nLooking for PCI devices...");
+        let host_device = devices::PCIDevice::new(BDF { bus: 0, device: 0, function: 0 })
+            .unwrap_or_else(|| panic!("No PCI host device found!"));
         if !host_device.common().multifunction {
             self.enumerate_bus(0)
         } else {
             for function in 0..8 {
                 let bdf = BDF { bus: 0, device: 0, function };
-                let maybe_device = PCIDevice::new(bdf);
+                let maybe_device = devices::PCIDevice::new(bdf);
                 if let Some(device) = maybe_device {
-                    let vendor_id: u32 = device.common().vendor_id.read().into();
+                    let vendor_id = device.common().vendor_id.read();
                     if vendor_id != 0xffff {
                         break;
                     }
@@ -52,9 +57,9 @@ impl PCIController {
 
     fn enumerate_device(&mut self, bus: u8, device: u8) {
         let bdf = BDF { bus, device, function: 0 };
-        if let Some(mut pcidevice) = PCIDevice::new(bdf) {
+        if let Some(mut pcidevice) = devices::PCIDevice::new(bdf) {
             let header = pcidevice.common();
-            let vendor_id: u32 = header.vendor_id.read().into();
+            let vendor_id = header.vendor_id.read();
             if vendor_id == 0xffff {
                 return;
             }
@@ -62,8 +67,8 @@ impl PCIController {
             if header.multifunction {
                 for function in 1..8 {
                     let bdf = BDF { bus, device, function };
-                    if let Some(mut pcidevice) = PCIDevice::new(bdf) {
-                        let vendor_id: u32 = pcidevice.common().vendor_id.read().into();
+                    if let Some(mut pcidevice) = devices::PCIDevice::new(bdf) {
+                        let vendor_id = pcidevice.common().vendor_id.read();
                         if vendor_id == 0xffff {
                             continue;
                         }
@@ -74,16 +79,16 @@ impl PCIController {
         }
     }
 
-    fn check_function(&mut self, pcidevice: &mut PCIDevice) {
+    fn check_function(&mut self, pcidevice: &mut devices::PCIDevice) {
         let class_id = pcidevice.common().class_id.read();
         let subclass_id = pcidevice.common().subclass_id.read();
         match pcidevice {
-            PCIDevice::PCIBridge(bridge) => {
+            devices::PCIDevice::PCIBridge(bridge) => {
                 log!("{}", classification::description(class_id, subclass_id, 0));
                 let secondary_bus = bridge.secondary_bus.read();
                 self.enumerate_bus(secondary_bus);
             }
-            _ => {
+            devices::PCIDevice::Standard(_) => {
                 let vendor_id = pcidevice.common().vendor_id.read();
                 log!(
                     "    {} {} at {}",
@@ -92,8 +97,9 @@ impl PCIController {
                     pcidevice.bdf()
                 );
                 pcidevice.configure();
-                self.devices.push(Box::new(*pcidevice))
+                self.devices.push(Box::new(pcidevice.inner()))
             }
+            _ => unimplemented!(),
         }
     }
 }
@@ -127,20 +133,20 @@ impl MemoryMappedBAR {
     pub fn base_address(&self) -> usize {
         match self.size() {
             BARSize::Bit20 => (self.0 & 0xfffff0) as usize,
-            BARSize::Bit32 => (self.0 & 0xfffff0) as usize,
-            BARSize::Bit64 => ((self.0 & 0xfffff0) as usize | ((self.1 as usize) << 32)),
+            BARSize::Bit32 => (self.0 & 0xfffffff0) as usize,
+            BARSize::Bit64 => ((self.0 & 0xfffffff0) as usize | ((self.1 as usize) << 32)),
         }
     }
     pub fn configure(&mut self, bdf: BDF, offset: u8) {
         let pci = Register::<u32>::new(bdf, offset);
         pci.write(0xfffffff0);
-        let temp: u32 = pci.read().into();
+        let temp: u32 = pci.read();
         self.2 = (temp & 0xfffffff0) as u64;
         pci.write(self.0);
         if self.size() == BARSize::Bit64 {
             let next = Register::<u32>::new(bdf, offset + 4);
             next.write(0xffffffff);
-            let temp: u32 = pci.read().into();
+            let temp: u32 = pci.read();
             self.2 += (temp as u64) << 32;
             pci.write(self.0);
         }
@@ -148,7 +154,7 @@ impl MemoryMappedBAR {
 }
 
 #[derive(Copy, Clone, Debug)]
-enum BaseAddressRegister {
+pub enum BaseAddressRegister {
     IO(IOBAR),
     MemoryMapped(MemoryMappedBAR),
     Unused,
@@ -159,7 +165,7 @@ impl BaseAddressRegister {
         if bar == 0 {
             return Self::Unused;
         }
-        if bar % 2 == 0 {
+        if bar % 2 == 1 {
             Self::IO(IOBAR(bar))
         } else {
             Self::MemoryMapped(MemoryMappedBAR(bar, extension, 0))
@@ -171,16 +177,16 @@ impl BaseAddressRegister {
 pub struct BaseAddressRegisters([BaseAddressRegister; 6]);
 
 impl BaseAddressRegisters {
-    pub fn new() -> Self {
+    fn new() -> Self {
         use BaseAddressRegister::Unused;
         BaseAddressRegisters([Unused, Unused, Unused, Unused, Unused, Unused])
     }
-    pub fn configure(&mut self, device: &PCIDevice) {
+    fn configure(&mut self, device: &devices::PCIDevice) {
         let bdf = device.bdf();
         let max_bars = match device {
-            PCIDevice::Standard(_) => 6,
-            PCIDevice::PCIBridge(_) => 2,
-            PCIDevice::PCICardBus(_) => 0,
+            devices::PCIDevice::Standard(_) => 6,
+            devices::PCIDevice::PCIBridge(_) => 2,
+            devices::PCIDevice::PCICardBus(_) => 0,
         };
         let mut skip = false;
         for j in 0..max_bars {
@@ -189,9 +195,9 @@ impl BaseAddressRegisters {
                 continue;
             }
             let pci = Register::<u32>::new(bdf, 4 * j + 0x10);
-            let next = Register::<u32>::new(bdf, 4 * j + 0x10);
-            let reg: u32 = pci.read().into();
-            let ext: u32 = next.read().into();
+            let next = Register::<u32>::new(bdf, 4 * j + 0x14);
+            let reg: u32 = pci.read();
+            let ext: u32 = next.read();
             let bar = BaseAddressRegister::new(reg, ext);
             match bar {
                 BaseAddressRegister::IO(_) => {
@@ -210,7 +216,15 @@ impl BaseAddressRegisters {
     }
 }
 
-#[derive(PartialEq)]
+impl Index<usize> for BaseAddressRegisters {
+    type Output = BaseAddressRegister;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.0[index]
+    }
+}
+
+#[derive(PartialEq, Debug)]
 pub enum BARSize {
     Bit32,
     Bit20,
