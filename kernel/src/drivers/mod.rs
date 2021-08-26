@@ -4,6 +4,7 @@ pub mod pci;
 pub mod pic;
 #[macro_use]
 pub mod serial;
+pub mod ahci;
 
 trait Driver {
     fn init(&mut self);
