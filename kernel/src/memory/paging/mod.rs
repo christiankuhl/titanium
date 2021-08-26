@@ -16,6 +16,7 @@ pub use self::entry::*;
 pub use self::mapper::Mapper;
 use self::table::Table;
 use self::temporary_page::TemporaryPage;
+use super::REGION_FRAME_ALLOCATOR;
 
 const ENTRY_COUNT: usize = 512;
 
@@ -140,7 +141,7 @@ impl InactivePageTable {
 }
 
 pub fn remap_kernel<A>(
-    allocator: &mut A,
+    allocator: &mut spin::MutexGuard<A>,
     elf_sections: ElfSections,
     multiboot_start: usize,
     multiboot_end: usize,
@@ -150,7 +151,7 @@ pub fn remap_kernel<A>(
 where
     A: FrameAllocator,
 {
-    let mut temporary_page = TemporaryPage::new(Page { number: 0xdeadbeef }, allocator);
+    let mut temporary_page = TemporaryPage::new(Page { number: 0xdeadbeef }, allocator.deref_mut());
 
     let mut active_table = unsafe { ActivePageTable::new() };
     let mut new_table = {
@@ -161,7 +162,7 @@ where
     active_table.with(&mut new_table, &mut temporary_page, |mapper| {
         log!("\nIdentity mapping VGA text buffer at 0xb8000...");
         let vga_buffer_frame = PhysFrame::containing_address(0xb8000);
-        mapper.identity_map(vga_buffer_frame, EntryFlags::WRITABLE, allocator);
+        mapper.identity_map(vga_buffer_frame, EntryFlags::WRITABLE, allocator.deref_mut());
         log!("\nIdentity mapping multiboot info section...");
         log!("    data start: {:#x}", multiboot_start);
         log!("    data end: {:#x}", multiboot_end);
@@ -171,7 +172,7 @@ where
             PhysFrame::containing_address(multiboot_start),
             PhysFrame::containing_address(shstrtab_end - 1),
         ) {
-            mapper.identity_map(frame, EntryFlags::PRESENT, allocator);
+            mapper.identity_map(frame, EntryFlags::PRESENT, allocator.deref_mut());
         }
         log!("\nIdentity mapping kernel sections...");
         for (idx, section) in elf_sections.enumerate() {
@@ -195,14 +196,24 @@ where
             let start_frame = PhysFrame::containing_address(section.addr as usize);
             let end_frame = PhysFrame::containing_address((section.addr + section.size - 1) as usize);
             for frame in PhysFrame::range_inclusive(start_frame, end_frame) {
-                mapper.identity_map(frame, flags, allocator);
+                mapper.identity_map(frame, flags, allocator.deref_mut());
             }
         }
     });
     let old_table = active_table.switch(new_table);
     // turn the old p4 page into a guard page
     let old_p4_page = Page::containing_address(old_table.p4_frame.start_address());
-    active_table.unmap(old_p4_page, allocator);
+    active_table.unmap(old_p4_page, allocator.deref_mut());
     log!("\nKernel stack guard page is at {:#x}...", old_p4_page.start_address());
     active_table
+}
+
+pub fn allocate_kernel_region(addr: PhysAddr, size: usize, flags: EntryFlags) -> VirtAddr {
+    let mut active_page_table = unsafe { ActivePageTable::new() };
+    let mut allocator = REGION_FRAME_ALLOCATOR.lock();
+    let range = PhysFrame::range_inclusive(PhysFrame::containing_address(addr), PhysFrame::containing_address(addr + size - 1));
+    for frame in range {
+        active_page_table.identity_map(frame, flags, allocator.deref_mut());
+    }
+    PhysFrame::containing_address(addr).start_address()
 }

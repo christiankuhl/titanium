@@ -1,3 +1,5 @@
+use lazy_static::lazy_static;
+
 use crate::{
     asm::{enable_nxe_bit, enable_write_protect_bit},
     log,
@@ -9,10 +11,17 @@ mod heap;
 mod paging;
 mod region_frame_allocator;
 
+pub use self::paging::allocate_kernel_region;
+pub use self::paging::{EntryFlags, Flags};
 pub use self::paging::{Mapper, PhysAddr, VirtAddr};
 use region_frame_allocator::RegionFrameAllocator;
 
 pub const PAGE_SIZE: usize = 4096;
+
+lazy_static! {
+    pub static ref REGION_FRAME_ALLOCATOR: spin::Mutex<RegionFrameAllocator> =
+        { spin::Mutex::new(RegionFrameAllocator::new()) };
+}
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PhysFrame {
@@ -77,18 +86,14 @@ pub fn init(multiboot_info: &MultibootInfo) {
     log!("\nStart of kernel: 0x{:x}", kernel_start);
     log!("End of kernel: 0x{:x}", kernel_end);
 
-    let mut allocator = RegionFrameAllocator::new(
-        kernel_start,
-        kernel_end,
-        multiboot_start,
-        multiboot_end,
-        shstrtab_start,
-        shstrtab_end,
-        memory_map,
-    );
+    let mut allocator = REGION_FRAME_ALLOCATOR.lock();
+
+    allocator.init(kernel_start, kernel_end, multiboot_start, multiboot_end, shstrtab_start, shstrtab_end, memory_map);
+
     unsafe {
         enable_nxe_bit();
     }
+
     let mut active_table = remap_kernel(
         &mut allocator,
         multiboot_info.elf_sections(),

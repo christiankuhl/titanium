@@ -9,21 +9,39 @@ struct MemoryMapHeaderTag {
 
 #[derive(Clone, Copy)]
 pub struct MemoryMap {
-    header: *const MemoryMapHeaderTag,
+    _header: usize,
 }
 
 #[derive(Clone, Copy)]
 pub struct MemoryMapIter {
-    header: *const MemoryMapHeaderTag,
-    current: *const MemoryRegion,
+    _header: usize,
+    _current: usize,
+}
+
+impl MemoryMapIter {
+    #[inline]
+    fn header(&self) -> *const MemoryMapHeaderTag {
+        self._header as *const MemoryMapHeaderTag
+    }
+    #[inline]
+    fn current(&self) -> *const MemoryRegion {
+        self._current as *const MemoryRegion
+    }
 }
 
 impl MemoryMap {
     pub fn new(addr: usize) -> Self {
-        Self { header: addr as *const MemoryMapHeaderTag }
+        Self { _header: addr }
     }
     pub fn iter(&self) -> MemoryMapIter {
-        MemoryMapIter { header: self.header, current: unsafe { self.header.offset(1) as *const MemoryRegion } }
+        MemoryMapIter { _header: self._header, _current: unsafe { self.header().offset(1) } as usize }
+    }
+    #[inline]
+    fn header(&self) -> *const MemoryMapHeaderTag {
+        self._header as *const MemoryMapHeaderTag
+    }
+    pub fn empty() -> Self {
+        Self { _header: 0 }
     }
 }
 
@@ -45,11 +63,11 @@ impl MemoryRegion {
 impl Iterator for MemoryMapIter {
     type Item = &'static MemoryRegion;
     fn next(&mut self) -> Option<Self::Item> {
-        let header = unsafe { *self.header };
-        if self.current as usize + header.entry_size as usize <= self.header as usize + header.size as usize {
+        let header = unsafe { *self.header() };
+        if self._current + header.entry_size as usize <= self._header + header.size as usize {
             unsafe {
-                self.current = self.current.offset(1);
-                return Some(&*self.current);
+                self._current = self.current().offset(1) as usize;
+                return Some(&*self.current());
             }
         }
         None

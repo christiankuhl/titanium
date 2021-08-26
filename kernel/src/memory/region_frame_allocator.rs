@@ -14,7 +14,8 @@ pub struct RegionFrameAllocator {
 }
 
 impl RegionFrameAllocator {
-    pub fn new(
+    pub fn init(
+        &mut self,
         kernel_start: usize,
         kernel_end: usize,
         multiboot_start: usize,
@@ -22,20 +23,31 @@ impl RegionFrameAllocator {
         shstrtab_start: usize,
         shstrtab_end: usize,
         memory_map: MemoryMap,
-    ) -> Self {
-        let mut allocator = Self {
-            next_free_frame: PhysFrame::containing_address(0),
+    ) {
+        self.next_free_frame = PhysFrame::containing_address(0);
+        self.current_region = None;
+        self.regions = memory_map.iter();
+        self.kernel_start = PhysFrame::containing_address(kernel_start);
+        self.kernel_end = PhysFrame::containing_address(kernel_end);
+        self.multiboot_start = PhysFrame::containing_address(multiboot_start);
+        self.multiboot_end = PhysFrame::containing_address(multiboot_end);
+        self.shstrtab_start = PhysFrame::containing_address(shstrtab_start);
+        self.shstrtab_end = PhysFrame::containing_address(shstrtab_end);
+        self.choose_next_region();
+    }
+    pub fn new() -> Self {
+        let dummy_frame = PhysFrame::containing_address(0);
+        Self {
+            next_free_frame: dummy_frame.clone(),
             current_region: None,
-            regions: memory_map.iter(),
-            kernel_start: PhysFrame::containing_address(kernel_start),
-            kernel_end: PhysFrame::containing_address(kernel_end),
-            multiboot_start: PhysFrame::containing_address(multiboot_start),
-            multiboot_end: PhysFrame::containing_address(multiboot_end),
-            shstrtab_start: PhysFrame::containing_address(shstrtab_start),
-            shstrtab_end: PhysFrame::containing_address(shstrtab_end),
-        };
-        allocator.choose_next_region();
-        allocator
+            regions: MemoryMap::empty().iter(),
+            kernel_start: dummy_frame.clone(),
+            kernel_end: dummy_frame.clone(),
+            multiboot_start: dummy_frame.clone(),
+            multiboot_end: dummy_frame.clone(),
+            shstrtab_start: dummy_frame.clone(),
+            shstrtab_end: dummy_frame.clone(),
+        }
     }
 
     fn choose_next_region(&mut self) {
