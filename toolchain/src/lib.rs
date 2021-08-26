@@ -25,7 +25,18 @@ pub fn build_bootimage(kernel_binary: &str, test: bool) {
 }
 
 pub fn start_qemu(kernel_binary: &str, test: bool, debug: bool, add_args: Vec<&str>) {
-    let mut args = vec!["--cdrom", "titanium.iso", "-m", "1G"];
+    let mut args = vec![
+        "--cdrom",
+        "titanium.iso",
+        "-m",
+        "1G",
+        "-drive",
+        "id=disk,file=myimage.img,if=none",
+        "-device",
+        "ahci,id=ahci",
+        "-device",
+        "ide-hd,drive=disk,bus=ahci.0",
+    ];
     if debug {
         args.extend(vec!["-s", "-S"])
     } else {
