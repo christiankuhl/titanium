@@ -35,20 +35,6 @@ impl PCIDevice {
             Self::PCICardBus(device) => device.bdf,
         }
     }
-    pub fn configure(&mut self) {
-        match self {
-            Self::Standard(device) => device.configure(),
-            Self::PCIBridge(device) => device.configure(),
-            Self::PCICardBus(device) => device.configure(),
-        }
-    }
-    pub fn inner(&self) -> StandardPCIDevice {
-        if let Self::Standard(device) = self {
-            *device
-        } else {
-            panic!("Illegal method call!")
-        }
-    }
 }
 
 #[derive(Copy, Clone, Debug)]

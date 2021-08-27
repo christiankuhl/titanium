@@ -1,4 +1,5 @@
 use core::mem::size_of;
+use core::ptr::addr_of_mut;
 
 use super::pci::{BaseAddressRegister, PCIDevice};
 use crate::{
@@ -8,6 +9,7 @@ use crate::{
 };
 use alloc::boxed::Box;
 use alloc::vec::Vec;
+use volatile::Volatile;
 
 const SATA_DRIVE: u32 = 0x00000101; // SATA drive
 const ATAPI_DRIVE: u32 = 0xEB140101; // SATAPI drive
@@ -150,16 +152,19 @@ impl AHCIController {
         ports
     }
     fn stop_port(&self, idx: usize) {
-        self.hba().port_regs[idx].cmd &= !HBA_PXCMD_ST;
-        self.hba().port_regs[idx].cmd &= !HBA_PXCMD_FRE;
-        loop {
-            if (self.hba().port_regs[idx].cmd & HBA_PXCMD_FR) > 0 {
-                continue;
+        let ptr = addr_of_mut!(self.hba().port_regs[idx].cmd);
+        unsafe {
+            ptr.write_volatile(ptr.read_volatile() & !HBA_PXCMD_ST);
+            ptr.write_volatile(ptr.read_volatile() & !HBA_PXCMD_FRE);
+            loop {
+                if (ptr.read_volatile() & HBA_PXCMD_FR) > 0 {
+                    continue;
+                }
+                if (ptr.read_volatile() & HBA_PXCMD_CR) > 0 {
+                    continue;
+                }
+                break;
             }
-            if (self.hba().port_regs[idx].cmd & HBA_PXCMD_CR) > 0 {
-                continue;
-            }
-            break;
         }
     }
 }
