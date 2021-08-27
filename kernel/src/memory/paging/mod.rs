@@ -229,20 +229,17 @@ pub struct PageFaultErrorCode;
 impl PageFaultErrorCode {
     pub fn from(error_code: u64) -> &'static str {
         if error_code & PROTECTION_VIOLATION > 0 {
-            return "PROTECTION VIOLATION"
+            return "PROTECTION VIOLATION";
         } else if error_code & CAUSED_BY_WRITE > 0 {
-            return "CAUSED_BY_WRITE"
-        }
-        else if error_code & USER_MODE > 0 {
-            return "USER_MODE"
-        }
-        else if error_code & MALFORMED_TABLE > 0 {
-            return "MALFORMED_TABLE"
-        }
-        else if error_code & INSTRUCTION_FETCH > 0 {
-            return "INSTRUCTION_FETCH"
+            return "CAUSED_BY_WRITE";
+        } else if error_code & USER_MODE > 0 {
+            return "USER_MODE";
+        } else if error_code & MALFORMED_TABLE > 0 {
+            return "MALFORMED_TABLE";
+        } else if error_code & INSTRUCTION_FETCH > 0 {
+            return "INSTRUCTION_FETCH";
         } else {
-            return "UNSPECIFIED"
+            return "UNSPECIFIED";
         }
     }
 }

@@ -28,7 +28,10 @@ pub fn init() {
     let mut pci = pci::init();
     let class = MassStorageController(MassStorage::SerialATA);
     let mut ahci_controllers = pci.get_devices(class);
-    let mut dev = ahci_controllers.pop().unwrap();
-    let ctrl = AHCIController::new(dev);
-    ctrl.enumerate_ports();
+    log!("\nLooking for AHCI compatible storage devices...");
+    for dev in ahci_controllers.drain(..) {
+        log!("{}:", dev);
+        let ctrl = AHCIController::new(dev);
+        ctrl.enumerate_ports();
+    }
 }

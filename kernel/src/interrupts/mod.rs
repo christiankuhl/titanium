@@ -5,9 +5,9 @@ use crate::asm::{inb, page_fault_linear_address, without_interrupts};
 use crate::drivers::keyboard::KEYBOARD;
 use crate::drivers::mouse::{init_mouse, move_mouse_cursor, MouseEvent, MOUSE};
 use crate::drivers::pic::PICS;
+use crate::memory::PageFaultErrorCode;
 use crate::multitasking::ThreadRegisters;
 use crate::{log, print, println};
-use crate::memory::PageFaultErrorCode;
 
 mod gdt;
 mod idt;

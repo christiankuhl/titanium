@@ -1,3 +1,5 @@
+use core::fmt::Display;
+
 use super::{BaseAddressRegisters, Register, BDF};
 
 #[derive(Copy, Clone, Debug)]
@@ -222,4 +224,15 @@ impl PCICardBusBridge {
         }
     }
     fn configure(&mut self) {}
+}
+
+impl Display for StandardPCIDevice {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> Result<(), core::fmt::Error> {
+        let vendor_id = self.common.vendor_id.read();
+        let class_id = self.common.class_id.read();
+        let subclass_id = self.common.subclass_id.read();
+        let descr = super::classification::description(class_id, subclass_id, 0);
+        let vendor = super::vendors::vendor(vendor_id);
+        write!(f, "{} {} at {}", descr, vendor, self.bdf)
+    }
 }

@@ -88,16 +88,10 @@ impl PCIController {
                 let secondary_bus = bridge.secondary_bus.read();
                 self.enumerate_bus(secondary_bus);
             }
-            devices::PCIDevice::Standard(_) => {
-                let vendor_id = pcidevice.common().vendor_id.read();
-                log!(
-                    "    {} {} at {}",
-                    vendors::vendor(vendor_id),
-                    classification::description(class_id, subclass_id, 0),
-                    pcidevice.bdf()
-                );
-                pcidevice.configure();
-                self.devices.push(Box::new(pcidevice.inner()))
+            devices::PCIDevice::Standard(device) => {
+                log!("    {}", device);
+                device.configure();
+                self.devices.push(Box::new(*device))
             }
             _ => unimplemented!(),
         }

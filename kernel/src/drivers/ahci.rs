@@ -2,10 +2,12 @@ use core::mem::size_of;
 
 use super::pci::{BaseAddressRegister, PCIDevice};
 use crate::{
+    log,
     memory::{allocate_kernel_region, EntryFlags, Flags, VirtAddr},
     println,
 };
 use alloc::boxed::Box;
+use alloc::vec::Vec;
 
 const SATA_DRIVE: u32 = 0x00000101; // SATA drive
 const ATAPI_DRIVE: u32 = 0xEB140101; // SATAPI drive
@@ -13,6 +15,10 @@ const EM_BRIDGE: u32 = 0xC33C0101; // Enclosure management bridge
 const PORT_MULTIPLIER: u32 = 0x96690101; // Port multiplier
 const HBA_PORT_IPM_ACTIVE: u32 = 1;
 const HBA_PORT_DET_PRESENT: u32 = 3;
+const HBA_PXCMD_ST: u32 = 0x0001;
+const HBA_PXCMD_FRE: u32 = 0x0010;
+const HBA_PXCMD_FR: u32 = 0x4000;
+const HBA_PXCMD_CR: u32 = 0x8000;
 
 #[repr(u8)]
 enum FISType {
@@ -99,7 +105,7 @@ pub struct AHCIController {
 impl AHCIController {
     pub fn new(pci: Box<PCIDevice>) -> Self {
         let hba_ptr = if let BaseAddressRegister::MemoryMapped(abar) = pci.bar[5] {
-            allocate_kernel_region(abar.base_address(), size_of::<HBA>(), EntryFlags::NO_CACHE)
+            allocate_kernel_region(abar.base_address(), size_of::<HBA>(), EntryFlags::NO_CACHE | EntryFlags::WRITABLE)
         } else {
             unreachable!()
         };
@@ -108,7 +114,8 @@ impl AHCIController {
     pub fn hba(&self) -> &mut HBA {
         unsafe { &mut *(self.hba_ptr as *mut HBA) }
     }
-    pub fn enumerate_ports(&self) {
+    pub fn enumerate_ports(&self) -> Vec<Box<AHCIPort>> {
+        let mut ports = Vec::new();
         let pi = self.hba().control_regs.pi;
         for idx in 0..32 {
             let ssts = self.hba().port_regs[idx].ssts;
@@ -117,18 +124,46 @@ impl AHCIController {
             if pi & (1 << idx) > 0 && ipm && det {
                 let signature = self.hba().port_regs[idx].sig;
                 match signature {
-                    SATA_DRIVE => println!("SATA drive detected on port {}", idx),
-                    ATAPI_DRIVE => println!("ATAPI drive detected on port {}", idx),
-                    EM_BRIDGE => println!("Enclosure management bridge detected on port {}", idx),
-                    PORT_MULTIPLIER => println!("Port multiplier detected on port {}", idx),
-                    _ => println!("Garbage device signature on port {}", idx),
+                    SATA_DRIVE => {
+                        log!("    SATA drive detected on port {}", idx);
+                        ports.push(Box::new(AHCIPort::new(self)))
+                    }
+                    ATAPI_DRIVE => {
+                        log!("    ATAPI drive detected on port {}", idx);
+                    }
+                    EM_BRIDGE => {
+                        log!("    Enclosure management bridge detected on port {}", idx);
+                    }
+                    PORT_MULTIPLIER => {
+                        log!("    Port multiplier detected on port {}", idx);
+                    }
+                    _ => {
+                        log!("    Garbage device signature on port {} - ignored", idx);
+                    }
                 }
             }
+        }
+        if ports.len() > 0 {
+            println!("Interrupt pin {} line {}", self.pci.interrupt_pin.read(), self.pci.interrupt_line.read());
+            self.stop_port(0)
+        }
+        ports
+    }
+    fn stop_port(&self, idx: usize) {
+        self.hba().port_regs[idx].cmd &= !HBA_PXCMD_ST;
+        self.hba().port_regs[idx].cmd &= !HBA_PXCMD_FRE;
+        loop {
+            if (self.hba().port_regs[idx].cmd & HBA_PXCMD_FR) > 0 {
+                continue;
+            }
+            if (self.hba().port_regs[idx].cmd & HBA_PXCMD_CR) > 0 {
+                continue;
+            }
+            break;
         }
     }
 }
 
-#[derive(Debug)]
 #[repr(C, packed)]
 struct PortRegisters {
     clb: u32,  /* Port x Command List Base Address */
@@ -153,7 +188,6 @@ struct PortRegisters {
     vs: [u8; 16], /* Port x Vendor Specific */
 }
 
-#[derive(Debug)]
 #[repr(C, packed)]
 pub struct GenericHostControl {
     cap: u32, /* Host Capabilities */
@@ -169,7 +203,6 @@ pub struct GenericHostControl {
     bohc: u32,      /* BIOS/OS Handoff Control and Status */
 }
 
-#[derive(Debug)]
 #[repr(C, packed)]
 pub struct HBA {
     control_regs: GenericHostControl,
@@ -179,7 +212,6 @@ pub struct HBA {
     port_regs: [PortRegisters; 32],
 }
 
-#[derive(Debug)]
 #[repr(C, packed)]
 pub struct CommandHeader {
     attributes: u16,
@@ -190,7 +222,6 @@ pub struct CommandHeader {
     reserved: [u32; 4],
 }
 
-#[derive(Debug)]
 #[repr(C, packed)]
 pub struct PhysicalRegionDescriptor {
     base_low: u32,
@@ -199,7 +230,6 @@ pub struct PhysicalRegionDescriptor {
     byte_count: u32, /* Bit 31 - Interrupt completion, Bit 0 to 21 - Data Byte Count */
 }
 
-#[derive(Debug)]
 #[repr(C, packed)]
 pub struct CommandTable {
     command_fis: [u8; 64],
@@ -241,3 +271,13 @@ pub struct CommandTable {
 // 	// DWORD 4
 // 	uint8_t  rsv4[4];     // Reserved
 // } FIS_REG_D2H;
+
+pub struct AHCIPort<'a> {
+    parent: &'a AHCIController,
+}
+
+impl<'a> AHCIPort<'a> {
+    fn new(parent: &'a AHCIController) -> Self {
+        Self { parent }
+    }
+}
