@@ -13,14 +13,13 @@ mod region_frame_allocator;
 
 pub use self::paging::allocate_kernel_region;
 pub use self::paging::{EntryFlags, Flags};
-pub use self::paging::{Mapper, PhysAddr, VirtAddr};
+pub use self::paging::{Mapper, PhysAddr, VirtAddr, PageFaultErrorCode};
 use region_frame_allocator::RegionFrameAllocator;
 
 pub const PAGE_SIZE: usize = 4096;
 
 lazy_static! {
-    pub static ref REGION_FRAME_ALLOCATOR: spin::Mutex<RegionFrameAllocator> =
-        { spin::Mutex::new(RegionFrameAllocator::new()) };
+    pub static ref REGION_FRAME_ALLOCATOR: spin::Mutex<RegionFrameAllocator> = spin::Mutex::new(RegionFrameAllocator::new());
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]

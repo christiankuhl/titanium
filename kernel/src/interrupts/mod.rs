@@ -7,6 +7,7 @@ use crate::drivers::mouse::{init_mouse, move_mouse_cursor, MouseEvent, MOUSE};
 use crate::drivers::pic::PICS;
 use crate::multitasking::ThreadRegisters;
 use crate::{log, print, println};
+use crate::memory::PageFaultErrorCode;
 
 mod gdt;
 mod idt;
@@ -43,7 +44,7 @@ extern "C" fn divide_by_zero_handler(stack_frame: &InterruptStackFrame) -> ! {
 extern "C" fn page_fault_handler(stack_frame: &InterruptStackFrame, error_code: u64) -> ! {
     println!("EXCEPTION: PAGE FAULT");
     println!("Accessed Address: {:#x?}", page_fault_linear_address());
-    println!("Error Code: {:?}", error_code);
+    println!("Error Code: {}", PageFaultErrorCode::from(error_code));
     panic!("{:#x?}", stack_frame);
 }
 
