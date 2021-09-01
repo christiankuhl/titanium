@@ -30,6 +30,7 @@ lazy_static! {
         idt.set_handler(Keyboard as u8, handler!(keyboard_interrupt_handler));
         idt.set_handler(Mouse as u8, handler!(mouse_interrupt_handler));
         idt.set_handler(Syscall as u8, handler!(syscall_handler));
+        idt.set_handler(AHCI as u8, handler!(ahci_interrupt_handler));
         idt
     };
 }
@@ -57,6 +58,14 @@ extern "C" fn breakpoint_handler(stack_frame: &InterruptStackFrame, rsp: u64) ->
 #[no_mangle]
 extern "C" fn double_fault_handler(stack_frame: &InterruptStackFrame, _error_code: u64) -> ! {
     panic!("EXCEPTION: DOUBLE FAULT\n{:#x?}", stack_frame);
+}
+
+#[no_mangle]
+extern "C" fn ahci_interrupt_handler(_stack_frame: &InterruptStackFrame, rsp: u64) -> u64 {
+    unsafe {
+        PICS.lock().notify_end_of_interrupt(Interrupt::AHCI as u8);
+    }
+    rsp
 }
 
 #[no_mangle]
@@ -119,7 +128,12 @@ pub fn init() {
     log!("\nInitialising interrupt descriptor table...");
     init_idt();
     log!("\nInitialising interrupt controller...");
-    unsafe { PICS.lock().initialize() };
+    let mut pics = PICS.lock();
+    unsafe {
+        pics.initialize();
+        let masks = pics.read_masks();
+        pics.write_masks(masks[0], masks[1] & !(1 << 3));
+    };
 }
 
 #[derive(Debug, Clone, Copy)]

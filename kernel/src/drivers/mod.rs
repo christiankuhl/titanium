@@ -8,6 +8,8 @@ pub mod ahci;
 
 use ahci::AHCIController;
 
+use crate::println;
+
 trait Driver {
     fn init(&mut self);
     fn reset(&mut self) -> u8;
@@ -31,7 +33,11 @@ pub fn init() {
     log!("\nLooking for AHCI compatible storage devices...");
     for dev in ahci_controllers.drain(..) {
         log!("{}:", dev);
-        let ctrl = AHCIController::new(dev);
-        ctrl.enumerate_ports();
+        let mut ctrl = AHCIController::new(dev);
+        ctrl.initialize();
+        let drives = ctrl.enumerate_ports();
+        for mut d in drives {
+            d.identify();
+        }
     }
 }

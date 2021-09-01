@@ -160,5 +160,6 @@ pub enum Interrupt {
     Timer = PIC_1_OFFSET,
     Keyboard = PIC_1_OFFSET + 1,
     Mouse = PIC_2_OFFSET + 4,
+    AHCI = PIC_2_OFFSET + 3,
     Syscall = 0x80,
 }

@@ -34,6 +34,7 @@ pub fn init(multiboot_info: &multiboot::MultibootInfo) {
     interrupts::init();
     log!("\nConfiguring physical memory...");
     memory::init(multiboot_info);
+    enable_interrupts();
     drivers::init();
 }
 
