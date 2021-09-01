@@ -11,9 +11,9 @@ mod heap;
 mod paging;
 mod region_frame_allocator;
 
-pub use self::paging::allocate_kernel_region;
+pub use self::paging::{allocate_anywhere, allocate_identity_mapped, Translate};
 pub use self::paging::{EntryFlags, Flags};
-pub use self::paging::{Mapper, PageFaultErrorCode, PhysAddr, VirtAddr};
+pub use self::paging::{Mapper, Page, PageFaultErrorCode, PhysAddr, VirtAddr};
 use region_frame_allocator::RegionFrameAllocator;
 
 pub const PAGE_SIZE: usize = 4096;

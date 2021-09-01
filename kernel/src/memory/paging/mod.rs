@@ -208,14 +208,29 @@ where
     active_table
 }
 
-pub fn allocate_kernel_region(addr: PhysAddr, size: usize, flags: EntryFlags) -> VirtAddr {
+pub fn allocate_anywhere(virtaddr: VirtAddr, size: usize, flags: EntryFlags) -> VirtAddr {
+    let mut active_page_table = unsafe { ActivePageTable::new() };
+    let mut allocator = REGION_FRAME_ALLOCATOR.lock();
+    let page_range = Page::range_inclusive(Page::containing_address(virtaddr), Page::containing_address(virtaddr + size - 1));
+    for page in page_range {
+        if active_page_table.translate_page(page) == None {
+            let frame = allocator.allocate_frame().unwrap();
+            active_page_table.map_to(page, frame, flags, allocator.deref_mut());
+        }
+    }
+    Page::containing_address(virtaddr).start_address()
+}
+
+pub fn allocate_identity_mapped(addr: PhysAddr, size: usize, flags: EntryFlags) -> VirtAddr {
     let mut active_page_table = unsafe { ActivePageTable::new() };
     let mut allocator = REGION_FRAME_ALLOCATOR.lock();
     let range = PhysFrame::range_inclusive(PhysFrame::containing_address(addr), PhysFrame::containing_address(addr + size - 1));
     for frame in range {
-        active_page_table.identity_map(frame, flags, allocator.deref_mut());
+        if active_page_table.translate_page(Page::containing_address(frame.start_address())) == None {
+            active_page_table.identity_map(frame, flags, allocator.deref_mut());
+        }
     }
-    PhysFrame::containing_address(addr).start_address()
+    Page::containing_address(addr).start_address()
 }
 
 const PROTECTION_VIOLATION: u64 = 1 << 0;
@@ -241,5 +256,16 @@ impl PageFaultErrorCode {
         } else {
             return "UNSPECIFIED";
         }
+    }
+}
+
+pub trait Translate {
+    fn translate(&self) -> PhysAddr;
+}
+
+impl Translate for VirtAddr {
+    fn translate(&self) -> PhysAddr {
+        let active_page_table = unsafe { ActivePageTable::new() };
+        active_page_table.translate(*self).unwrap()
     }
 }
