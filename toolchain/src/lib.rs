@@ -31,7 +31,7 @@ pub fn start_qemu(kernel_binary: &str, test: bool, debug: bool, add_args: Vec<&s
         "-m",
         "1G",
         "-drive",
-        "id=disk,file=myimage.img,if=none",
+        "id=disk,file=myimage.img,if=none,format=raw",
         "-device",
         "ahci,id=ahci",
         "-device",
