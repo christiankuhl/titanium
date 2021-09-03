@@ -11,7 +11,8 @@ It's state is currently very rudimentary: We can
 * print keyboard and mouse input to the VGA text buffer
 * allocate memory on the heap and have paging working
 * enumerate PCI devices
-* do elementary task switching.
+* do elementary task switching
+* identify SATA drives.
 
 ## Where are you going with this?
 
