@@ -1,3 +1,7 @@
+use super::InterruptStackFrame;
+use crate::println;
+
+#[macro_export]
 macro_rules! handler {
     ($name: ident) => {{
         #[naked]

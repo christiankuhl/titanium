@@ -19,6 +19,7 @@ use core::panic::PanicInfo;
 
 pub mod asm;
 pub mod drivers;
+#[macro_use]
 pub mod interrupts;
 pub mod memory;
 pub mod multiboot;

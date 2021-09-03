@@ -5,6 +5,7 @@ use crate::asm::{inb, page_fault_linear_address, without_interrupts};
 use crate::drivers::keyboard::KEYBOARD;
 use crate::drivers::mouse::{init_mouse, move_mouse_cursor, MouseEvent, MOUSE};
 use crate::drivers::pic::PICS;
+use crate::drivers::AHCI_CONTROLLERS;
 use crate::memory::PageFaultErrorCode;
 use crate::multitasking::ThreadRegisters;
 use crate::{log, print, println};
@@ -61,14 +62,6 @@ extern "C" fn double_fault_handler(stack_frame: &InterruptStackFrame, _error_cod
 }
 
 #[no_mangle]
-extern "C" fn ahci_interrupt_handler(_stack_frame: &InterruptStackFrame, rsp: u64) -> u64 {
-    unsafe {
-        PICS.lock().notify_end_of_interrupt(Interrupt::AHCI as u8);
-    }
-    rsp
-}
-
-#[no_mangle]
 extern "C" fn timer_interrupt_handler(_stack_frame: &mut InterruptStackFrame, rsp: u64) -> u64 {
     unsafe {
         let new_rsp = {
@@ -122,6 +115,19 @@ extern "C" fn syscall_handler(_stack_frame: &InterruptStackFrame, rsp: u64) -> u
     rsp
 }
 
+#[no_mangle]
+extern "C" fn ahci_interrupt_handler(_stack_frame: &InterruptStackFrame, rsp: u64) -> u64 {
+    for ctrl in AHCI_CONTROLLERS.lock().iter_mut() {
+        if ctrl.handle_interrupt() {
+            unsafe {
+                crate::drivers::pic::PICS.lock().notify_end_of_interrupt(ctrl.interrupt_vector());
+            }
+            break;
+        }
+    }
+    rsp
+}
+
 pub fn init() {
     log!("\nInitialising global descriptor table...");
     gdt::init();
@@ -131,8 +137,6 @@ pub fn init() {
     let mut pics = PICS.lock();
     unsafe {
         pics.initialize();
-        let masks = pics.read_masks();
-        pics.write_masks(masks[0], masks[1] & !(1 << 3));
     };
 }
 

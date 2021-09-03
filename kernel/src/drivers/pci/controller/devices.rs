@@ -108,6 +108,9 @@ impl StandardPCIDevice {
     pub fn configure(&mut self) {
         self.bar.configure(&PCIDevice::Standard(*self));
     }
+    pub fn interrupt_vector(&self) -> u8 {
+        self.interrupt_line.read() as u8
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
