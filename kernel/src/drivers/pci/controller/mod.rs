@@ -29,7 +29,6 @@ impl PCIController {
         self.devices.drain_filter(|dev| (dev.common.class_id.read(), dev.common.subclass_id.read()) == class.as_raw()).collect()
     }
     pub fn discover(&mut self) {
-        log!("\nLooking for PCI devices...");
         let host_device = devices::PCIDevice::new(BDF { bus: 0, device: 0, function: 0 })
             .unwrap_or_else(|| panic!("No PCI host device found!"));
         if !host_device.common().multifunction {

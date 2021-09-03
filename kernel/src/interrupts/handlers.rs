@@ -1,10 +1,10 @@
 use pc_keyboard::DecodedKey;
 
 use crate::asm::{inb, page_fault_linear_address, without_interrupts};
+use crate::drivers::ahci::AHCI_CONTROLLERS;
 use crate::drivers::keyboard::KEYBOARD;
 use crate::drivers::mouse::{move_mouse_cursor, MouseEvent, MOUSE};
 use crate::drivers::pic::PICS;
-use crate::drivers::AHCI_CONTROLLERS;
 use crate::memory::PageFaultErrorCode;
 use crate::multitasking::ThreadRegisters;
 use crate::{print, println};

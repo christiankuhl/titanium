@@ -15,7 +15,6 @@ pub fn enable_interrupt(irq: u8) {
         } else {
             masks[1] &= !(1 << (irq - 8))
         }
-        pics.write_masks(0, 0)
-        // pics.write_masks(masks[0], masks[1]);
+        pics.write_masks(masks[0], masks[1]);
     }
 }

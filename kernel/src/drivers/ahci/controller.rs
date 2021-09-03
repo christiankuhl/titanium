@@ -37,7 +37,6 @@ impl AHCIController {
         // Ensure that HBA knows we are AHCI aware.
         self.hba().control_regs.ghc = 0x80000000;
         // Enable interrupt line
-        log!("Enabling PCI interrupt pin {} line {}", self.pci.interrupt_pin.read(), self.pci.interrupt_line.read());
         self.pci.common.command.write(self.pci.common.command.read() & !(1 << 10));
         // Enable bus mastering
         self.pci.common.command.write(self.pci.common.command.read() | (1 << 0) | (1 << 2));
