@@ -12,6 +12,7 @@
 #![test_runner(crate::testing::test_runner)]
 #![reexport_test_harness_main = "run_tests"]
 #![macro_use]
+#![allow(dead_code)]
 
 extern crate alloc;
 

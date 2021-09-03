@@ -22,8 +22,8 @@ lazy_static! {
         let class = MassStorageController(MassStorage::SerialATA);
         let mut pci_devices = pci.get_devices(class);
         let mut ahci_controllers = Vec::new();
-        for dev in pci_devices.drain(..) {
-            let mut ctrl = AHCIController::new(dev);
+        for (idx, dev) in pci_devices.drain(..).enumerate() {
+            let mut ctrl = AHCIController::new(dev, idx);
             ctrl.initialize();
             ahci_controllers.push(ctrl);
         }
@@ -41,20 +41,33 @@ pub fn init() {
             ctrl.identify_drives();
             AHCI_CONTROLLERS.lock();
         }
+        ctrl.finish_initialisation()
     }
 }
 
-fn fis_base(port_number: usize) -> VirtAddr {
-    AHCI_BASE + (32 << 10) + (port_number << 8)
+//// Base address of AHCI MMIO structures
+fn base_address(ctrl_number: usize) -> VirtAddr {
+    AHCI_BASE + 3 * ctrl_number * (1 << 17)
 }
 
-fn command_list_base(port_number: usize) -> VirtAddr {
-    AHCI_BASE + (port_number << 10)
+//// FIS base address
+fn fis_base(ctrl_number: usize, port_number: usize) -> VirtAddr {
+    base_address(ctrl_number) + (32 << 10) + (port_number << 8)
+}
+
+//// Command list base address
+fn command_list_base(ctrl_number: usize, port_number: usize) -> VirtAddr {
+    base_address(ctrl_number) + (port_number << 10)
 }
 
 //// Command table descriptor base address
-fn command_table_descriptor(port_number: usize, cmd_idx: usize) -> VirtAddr {
-    AHCI_BASE + (40 << 10) + (port_number << 13) + ((cmd_idx as usize) << 8)
+fn command_table_descriptor(ctrl_number: usize, port_number: usize, cmd_idx: usize) -> VirtAddr {
+    base_address(ctrl_number) + (40 << 10) + (port_number << 13) + ((cmd_idx as usize) << 8)
+}
+
+//// Device metadata base address
+fn metadata_address(ctrl_number: usize, port_number: usize) -> VirtAddr {
+    base_address(ctrl_number) + 2 * (1 << 17) + (1 << 16) + 512 * port_number
 }
 
 fn delay(microseconds: usize) {

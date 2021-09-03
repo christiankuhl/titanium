@@ -6,12 +6,13 @@ use core::ptr::{addr_of, addr_of_mut};
 use crate::memory::{allocate_anywhere, allocate_identity_mapped, Translate, VirtAddr};
 
 use super::port::AHCIPort;
-use super::structs::*;
 use super::{
     command_list_base, command_table_descriptor, delay, fis_base, full_memory_barrier, BaseAddressRegister, PCIDevice,
 };
+use super::{metadata_address, structs::*};
 
 pub struct AHCIController {
+    pub number: usize,
     pci: Box<PCIDevice>,
     hba_ptr: VirtAddr,
     ports: Vec<Box<AHCIPort>>,
@@ -19,13 +20,13 @@ pub struct AHCIController {
 }
 
 impl AHCIController {
-    pub fn new(pci: Box<PCIDevice>) -> Self {
+    pub fn new(pci: Box<PCIDevice>, number: usize) -> Self {
         let hba_ptr = if let BaseAddressRegister::MemoryMapped(abar) = pci.bar[5] {
             allocate_identity_mapped(abar.base_address(), size_of::<HBA>(), NO_CACHE)
         } else {
             unreachable!()
         };
-        Self { pci, hba_ptr, ports: Vec::new(), taken_ports: 0 }
+        Self { number, pci, hba_ptr, ports: Vec::new(), taken_ports: 0 }
     }
     pub fn hba(&self) -> &mut HBA {
         unsafe { &mut *(self.hba_ptr as *mut HBA) }
@@ -130,17 +131,17 @@ impl AHCIController {
     fn rebase(&self, port: &AHCIPort) {
         self.stop_port(port.number);
         unsafe {
-            let page_addr = allocate_anywhere(command_list_base(port.number), 1024, NO_CACHE);
+            let page_addr = allocate_anywhere(command_list_base(self.number, port.number), 1024, NO_CACHE);
             addr_of_mut!(port.registers().clb).write_volatile(page_addr.translate() as u32);
             addr_of_mut!(port.registers().clbu).write_volatile(0);
-            let page_addr = allocate_anywhere(fis_base(port.number), 256, NO_CACHE);
+            let page_addr = allocate_anywhere(fis_base(self.number, port.number), 256, NO_CACHE);
             addr_of_mut!(port.registers().fb).write_volatile(page_addr.translate() as u32);
             addr_of_mut!(port.registers().fbu).write_volatile(0);
-            let hba_cmd_hdr = command_list_base(port.number) as *mut CommandHeader;
+            let hba_cmd_hdr = command_list_base(self.number, port.number) as *mut CommandHeader;
             for cmd_idx in 0..32 {
                 let ptr = addr_of_mut!((*(hba_cmd_hdr.offset(cmd_idx))).prdtl);
                 ptr.write_volatile(8);
-                let ctba = command_table_descriptor(port.number, cmd_idx as usize);
+                let ctba = command_table_descriptor(self.number, port.number, cmd_idx as usize);
                 let page_addr = allocate_anywhere(ctba, 256, NO_CACHE);
                 let ptr = addr_of_mut!((*(hba_cmd_hdr.offset(cmd_idx))).ctba);
                 ptr.write_volatile(page_addr.translate() as u32);
@@ -149,6 +150,11 @@ impl AHCIController {
             }
         }
         self.start_port(port.number);
+    }
+    pub fn finish_initialisation(&mut self) {
+        for port in &mut self.ports {
+            port.finish_initialisation()
+        }
     }
     pub fn handle_interrupt(&mut self) -> bool {
         let outstanding_irqs = self.hba().control_regs.is & self.taken_ports;

@@ -11,7 +11,7 @@ use controller::PCIController;
 pub use controller::*;
 
 lazy_static! {
-    pub static ref PCI: spin::Mutex<PCIController> = { spin::Mutex::new(PCIController::new()) };
+    pub static ref PCI: spin::Mutex<PCIController> = spin::Mutex::new(PCIController::new());
 }
 
 pub fn init() {
