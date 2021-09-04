@@ -22,6 +22,7 @@ pub mod asm;
 pub mod drivers;
 #[macro_use]
 pub mod interrupts;
+pub mod filesystem;
 pub mod memory;
 pub mod multiboot;
 pub mod multitasking;

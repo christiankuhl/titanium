@@ -1,7 +1,6 @@
 use core::ptr::addr_of_mut;
 
 use crate::memory::{allocate_anywhere, PhysAddr, Translate, VirtAddr};
-use crate::println;
 
 use super::controller::AHCIController;
 use super::structs::*;

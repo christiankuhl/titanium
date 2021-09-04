@@ -6,10 +6,10 @@ use core::ptr::{addr_of, addr_of_mut};
 use crate::memory::{allocate_anywhere, allocate_identity_mapped, Translate, VirtAddr};
 
 use super::port::AHCIPort;
+use super::structs::*;
 use super::{
     command_list_base, command_table_descriptor, delay, fis_base, full_memory_barrier, BaseAddressRegister, PCIDevice,
 };
-use super::{metadata_address, structs::*};
 
 pub struct AHCIController {
     pub number: usize,
