@@ -1,10 +1,18 @@
 use std::env::args;
+use std::path::Path;
 use std::process::Command;
 
 fn main() {
     Command::new("cargo").arg("build").status().expect("Build failed!");
     let kernel_binary = "../target/x86_64-titanium/debug/titanium";
-    toolchain::build_bootimage(kernel_binary, false);
+    {
+        let image = if Path::new(toolchain::IMAGE_NAME).exists() {
+            toolchain::DiskImage::from_existing(toolchain::IMAGE_NAME)
+        } else {
+            toolchain::DiskImage::create()
+        };
+        image.update("boot/titanium", kernel_binary, Some("0:0"), Some("0400"));
+    }
     let mut add_args = args();
     add_args.next();
     add_args.next();

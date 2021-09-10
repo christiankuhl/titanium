@@ -1,5 +1,7 @@
 use std::env;
 use std::env::Args;
+use std::path::Path;
+use std::process::Command;
 
 fn main() {
     let mut args = env::args();
@@ -12,6 +14,9 @@ fn main() {
                     let add_args = args.collect::<Vec<String>>();
                     let add_args: Vec<&str> = add_args.iter().map(|s| &**s).collect();
                     toolchain::execute_test_suite(add_args)
+                }
+                Some("create") => {
+                    toolchain::DiskImage::create();
                 }
                 Some(kernel_binary) => build_and_run(kernel_binary, args),
                 None => {
@@ -28,7 +33,14 @@ fn main() {
 
 fn build_and_run(kernel_binary: &str, args: Args) {
     let test = toolchain::is_test_run(kernel_binary);
-    toolchain::build_bootimage(kernel_binary, test);
+    {
+        let image = if Path::new(toolchain::IMAGE_NAME).exists() {
+            toolchain::DiskImage::from_existing(toolchain::IMAGE_NAME)
+        } else {
+            toolchain::DiskImage::create()
+        };
+        image.update("boot/titanium", kernel_binary, Some("0:0"), Some("0400"));
+    }
     let add_args = args.collect::<Vec<String>>();
     let add_args: Vec<&str> = add_args.iter().map(|s| &**s).collect();
     toolchain::start_qemu(kernel_binary, test, false, add_args)

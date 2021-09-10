@@ -1,37 +1,180 @@
 use serde_derive::Deserialize;
-use std::fs::{read_to_string, File};
-use std::io::{Result, Write};
+use std::fs::read_to_string;
+use std::io::Result;
 use std::process::{exit, Command, ExitStatus, Stdio};
 use toml;
 
-pub fn build_bootimage(kernel_binary: &str, test: bool) {
-    if !test {
-        println!("\nProducing bootable image for {}", kernel_binary);
-    }
-    Command::new("mkdir").arg("iso").status().unwrap();
-    Command::new("mkdir").arg("iso/boot").status().unwrap();
-    Command::new("mkdir").arg("iso/boot/grub").status().unwrap();
-    Command::new("cp").arg(kernel_binary).arg("iso/boot/titanium.bin").status().unwrap();
-    let mut cfg = File::create("iso/boot/grub/grub.cfg").expect("Failed to create grub.cfg");
-    cfg.write_all(b"set timeout=0\nset default=0\n\nmenuentry \"Titanium OS\" {\nmultiboot2 /boot/titanium.bin\nboot\n}")
+pub const IMAGE_NAME: &str = "titanium.img";
+const MOUNT_DIR: &str = "img";
+
+fn cleanup(loopback_device: &str) {
+    Command::new("sudo")
+        .arg("umount")
+        .arg(MOUNT_DIR)
+        .status()
+        .or_else(|x| {
+            Command::new("sleep").arg("1").status().unwrap();
+            Command::new("sudo").arg("umount").arg(MOUNT_DIR).status().unwrap();
+            Err(x)
+        })
         .unwrap();
-    Command::new("grub-mkrescue")
-        .stderr(if !test { Stdio::inherit() } else { Stdio::null() })
-        .arg("--output=titanium.iso")
-        .arg("iso")
+    Command::new("sudo").arg("rmdir").arg(MOUNT_DIR).status().expect("Failed to delete mount directory!");
+    Command::new("sudo").arg("losetup").arg("-d").arg(loopback_device).output().expect("Failed to clean up loopback device!");
+}
+
+fn mount_disk_image(loopback_device: &str) {
+    Command::new("mkdir").arg("-p").arg(MOUNT_DIR).status().unwrap();
+    Command::new("sudo")
+        .arg("mount")
+        .arg(format!("{}p1", loopback_device))
+        .arg(format!("{}/", MOUNT_DIR))
+        .status()
+        .expect("Unable to mount image!");
+}
+
+fn install_grub(loopback_device: &str) {
+    Command::new("sudo")
+        .arg("grub-install")
+        .arg(format!("--boot-directory={}/boot", MOUNT_DIR))
+        .arg("--modules=ext2 part_msdos")
+        .arg(loopback_device)
+        .status()
+        .expect("Unable to install GRUB!");
+}
+
+fn create_new_disk_image(image_name: &str, size: usize) -> String {
+    // Create the raw image
+    Command::new("qemu-img")
+        .arg("create")
+        .arg("-q")
+        .arg("-f")
+        .arg("raw")
+        .arg(image_name)
+        .arg(format!("{}M", size / (1024 * 1024)))
         .status()
         .unwrap();
-    Command::new("rm").arg("-rf").arg("iso").status().unwrap();
+    // Set up loopback device
+    let loopback_device = set_up_loopback_device(image_name);
+    // Create partition table
+    let parted_args =
+        vec!["mklabel", "msdos", "mkpart", "primary", "ext2", "1MiB", "100%", "-a", "minimal", "set", "1", "boot", "on"];
+    println!("Creating partition table");
+    Command::new("sudo")
+        .arg("parted")
+        .arg("-s")
+        .arg(&loopback_device)
+        .args(parted_args)
+        .status()
+        .expect("Failed to set up partition table!");
+    // Destroy old filesystem (if any)
+    Command::new("sudo")
+        .arg("dd")
+        .arg("if=/dev/zero")
+        .arg(format!("of={}p1", &loopback_device))
+        .arg("bs=1M")
+        .arg("count=1")
+        .arg("status=none")
+        .status()
+        .expect(&format!("Could not destroy old filesystem on {}", &loopback_device));
+    // Build new filesystem
+    Command::new("sudo")
+        .arg("mke2fs")
+        .arg("-q")
+        .arg("-I")
+        .arg("128")
+        .arg(format!("{}p1", &loopback_device))
+        .status()
+        .expect(&format!("Could not build new ext2 filesystem on {}", &loopback_device));
+    loopback_device
+}
+
+fn set_up_loopback_device(image_name: &str) -> String {
+    let losetup =
+        Command::new("sudo").arg("losetup").arg("--find").arg("--partscan").arg("--show").arg(image_name).output().unwrap();
+    let loopback_device = String::from_utf8(losetup.stdout).expect("Failed to set up loopback device!").replace("\n", "");
+    println!("Set up loopback device: {}", &loopback_device);
+    loopback_device
+}
+
+fn create_root_filesystem() {
+    Command::new("sudo").arg("mkdir").arg("-p").arg(format!("{}/boot/grub", MOUNT_DIR)).status().unwrap();
+    Command::new("sudo").arg("chmod").arg("700").arg(format!("{}/boot", MOUNT_DIR)).status().unwrap();
+    for dir in vec!["bin", "etc", "proc", "mnt", "tmp", "boot", "mod", "var/run"] {
+        Command::new("sudo").arg("mkdir").arg("-p").arg(format!("{}/{}", MOUNT_DIR, dir)).status().unwrap();
+    }
+    Command::new("sudo")
+        .arg("cp")
+        .arg("../toolchain/grub.cfg")
+        .arg(format!("{}/boot/grub/grub.cfg", MOUNT_DIR))
+        .status()
+        .unwrap();
+}
+
+fn disk_usage() -> usize {
+    let du_output = Command::new("du").arg("-s").arg("--apparent-size").arg("../target/").output().unwrap();
+    let size = usize::from_str_radix(
+        String::from_utf8(du_output.stdout)
+            .expect("Unable get output from 'du'")
+            .split("\t")
+            .next()
+            .expect("Malformed 'du' output"),
+        10,
+    )
+    .expect("Unable to parse 'du' output");
+    println!("Size needed: {} MB", size / (1024 * 1024) + 500);
+    size + 500 * 1024 * 1024
+}
+
+pub struct DiskImage {
+    loopback_device: String,
+    mounted: bool,
+}
+
+impl DiskImage {
+    pub fn create() -> Self {
+        println!("Creating new image file {}...", IMAGE_NAME);
+        let size = disk_usage();
+        let loopback_device = create_new_disk_image(IMAGE_NAME, size);
+        mount_disk_image(&loopback_device);
+        create_root_filesystem();
+        install_grub(&loopback_device);
+        Self { loopback_device, mounted: true }
+    }
+    pub fn from_existing(image_file: &str) -> Self {
+        println!("Using existing image file {}...", image_file);
+        let loopback_device = set_up_loopback_device(image_file);
+        mount_disk_image(&loopback_device);
+        Self { loopback_device, mounted: true }
+    }
+    pub fn update(&self, file: &str, with_file: &str, owner: Option<&str>, permissions: Option<&str>) {
+        println!("Updating {} with {}...", file, with_file);
+        let tgt = format!("{}/{}", MOUNT_DIR, file);
+        Command::new("sudo").arg("cp").arg(with_file).arg(&tgt).status().unwrap();
+        if let Some(owner) = owner {
+            Command::new("sudo").arg("chown").arg(owner).arg(&tgt).status().unwrap();
+        }
+        if let Some(permissions) = permissions {
+            Command::new("sudo").arg("chmod").arg(permissions).arg(&tgt).status().unwrap();
+        }
+    }
+}
+
+impl Drop for DiskImage {
+    fn drop(&mut self) {
+        if self.mounted {
+            println!("Unmounting {}...", self.loopback_device);
+            Command::new("sleep").arg("1").status().unwrap();
+            cleanup(&self.loopback_device);
+        }
+    }
 }
 
 pub fn start_qemu(kernel_binary: &str, test: bool, debug: bool, add_args: Vec<&str>) {
     let mut args = vec![
-        "--cdrom",
-        "titanium.iso",
         "-m",
         "1G",
         "-drive",
-        "id=disk,file=myimage.img,if=none,format=raw",
+        "id=disk,file=titanium.img,if=none,index=0,format=raw",
         "-device",
         "ahci,id=ahci",
         "-device",
