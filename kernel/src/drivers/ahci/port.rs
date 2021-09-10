@@ -122,6 +122,51 @@ impl<'a> AHCIPort {
             }
         }
     }
+    pub fn access_device(&mut self) {
+        self.spin_until_ready();
+        let slot = self.find_cmd_slot().unwrap() as isize;
+        unsafe {
+            let cmd_hdr = command_list_base(self.parent_number, self.number);
+            let cmd_hdr = (cmd_hdr as *mut CommandHeader).offset(slot);
+            let ptr = addr_of_mut!((*cmd_hdr).prdtl);
+            // ptr.write_volatile(scatter_count());
+            let ptr = addr_of_mut!((*cmd_hdr).prdbc);
+            ptr.write_volatile(0);
+            let cmd_table = command_table_descriptor(self.parent_number, self.number, slot as usize) as *mut CommandTable;
+            // let ptr = addr_of_mut!((*cmd_table).descriptors[0]);
+            // ptr.write_volatile(PhysicalRegionDescriptor {
+            //     base_low: self.metadata_addr as u32,
+            //     base_high: 0,
+            //     reserved: 0,
+            //     byte_count: 511,
+            // });
+
+            let ptr = addr_of_mut!((*cmd_hdr).attributes);
+            ptr.write_volatile(5 | 128);
+            // (size_t)FIS::DwordCount::RegisterHostToDevice |
+            // AHCI::CommandHeaderAttributes::P |
+            // (direction == AsyncBlockDeviceRequest::RequestType::Write ? AHCI::CommandHeaderAttributes::W : 0);
+
+            let fis = addr_of_mut!((*cmd_table).command_fis) as *mut RegisterH2D;
+            let ptr = addr_of_mut!((*fis).fis_type);
+            ptr.write_volatile(FISType::RegisterH2D);
+            let ptr = addr_of_mut!((*fis).pmport);
+            ptr.write_volatile(128);
+            let ptr = addr_of_mut!((*fis).command);
+            ptr.write_volatile(ATA_CMD_IDENTIFY);
+            self.spin_until_ready();
+            let ptr = addr_of_mut!((*self.registers()).ci);
+            ptr.write_volatile(ptr.read() | (1 << slot));
+            loop {
+                if self.registers().serr != 0 {
+                    panic!("Error accessing AHCI device")
+                }
+                if !self.wait_for_completion {
+                    break;
+                }
+            }
+        }
+    }
     fn spin_until_ready(&self) {
         let mut spin = 0;
         while (self.registers().tfd & (ATA_SR_BSY | ATA_SR_DRQ) > 0) && spin <= 100 {
