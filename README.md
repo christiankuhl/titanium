@@ -43,7 +43,7 @@ Now, if you absolutely must:
 
 0. Install prerequisites
 * [QEMU](https://www.qemu.org/) as an emulator
-* [grub-mkrescue](http://manpages.ubuntu.com/manpages/trusty/man1/grub-mkrescue.1.html) to create a bootable image
+* [GRUB](https://www.gnu.org/software/grub/) to create a bootable image
 * [gdb](https://www.gnu.org/software/gdb/) for debugging purposes.
 
 1. Clone the repository
