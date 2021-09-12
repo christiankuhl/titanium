@@ -36,6 +36,7 @@ fn install_grub(loopback_device: &str) {
     Command::new("sudo")
         .arg("grub-install")
         .arg(format!("--boot-directory={}/boot", MOUNT_DIR))
+        .arg("--target=i386-pc")
         .arg("--modules=ext2 part_msdos")
         .arg(loopback_device)
         .status()
@@ -171,8 +172,8 @@ impl Drop for DiskImage {
 
 pub fn start_qemu(kernel_binary: &str, test: bool, debug: bool, add_args: Vec<&str>) {
     let mut args = vec![
-        "-m",
-        "1G",
+        "-m", "1G",
+        "-cpu", "host",
         "-drive",
         "id=disk,file=titanium.img,if=none,index=0,format=raw",
         "-device",

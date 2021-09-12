@@ -42,8 +42,9 @@ This would not go anywhere if it weren't for the following resources:
 Now, if you absolutely must:
 
 0. Install prerequisites
+* [Rust], at least in version 1.57.0-nightly
 * [QEMU](https://www.qemu.org/) as an emulator
-* [GRUB](https://www.gnu.org/software/grub/) to create a bootable image
+* [GRUB](https://www.gnu.org/software/grub/) for target i386-pc to create a bootable image
 * [gdb](https://www.gnu.org/software/gdb/) for debugging purposes.
 
 1. Clone the repository
