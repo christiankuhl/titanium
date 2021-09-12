@@ -1,8 +1,8 @@
 use lazy_static::lazy_static;
 
+use crate::drivers::mouse::init_mouse;
 use crate::drivers::pic::PICS;
 use crate::log;
-use crate::{drivers::mouse::init_mouse, println};
 
 mod gdt;
 mod idt;

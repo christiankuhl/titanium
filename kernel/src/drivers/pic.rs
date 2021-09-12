@@ -1,9 +1,6 @@
 use spin;
 
-use crate::{
-    asm::{inb, outb},
-    println,
-};
+use crate::asm::{inb, outb};
 
 pub const PIC_1_OFFSET: u8 = 0x20;
 pub const PIC_2_OFFSET: u8 = PIC_1_OFFSET + 8;
@@ -64,7 +61,7 @@ impl ChainedPics {
 
     pub unsafe fn initialize(&mut self) {
         let wait = || outb(0x80, 0);
-        // let saved_masks = self.read_masks();
+        let saved_masks = self.read_masks();
         self.pics[0].write_cmd(CMD_INIT);
         wait();
         self.pics[1].write_cmd(CMD_INIT);
@@ -87,8 +84,7 @@ impl ChainedPics {
         self.pics[1].write_data(MODE_8086);
         wait();
 
-        self.write_masks(0, 0);
-        println!("{:?}", self.read_masks());
+        self.write_masks(saved_masks[0], saved_masks[1]);
     }
 
     pub unsafe fn read_masks(&mut self) -> [u8; 2] {

@@ -201,11 +201,14 @@ impl<'a> AHCIPort {
             logical_sector_size,
             physical_sector_size
         );
-
         // m_connected_device = SATADiskDevice::create(m_parent_handler.hba_controller(), *this, logical_sector_size, max_addressable_sector);
     }
     pub fn handle_interrupt(&mut self) {
         self.wait_for_completion = false;
+        let ptr = addr_of_mut!(self.registers().is);
+        unsafe {
+            ptr.write_volatile(0xffffffff);
+        }
     }
 }
 

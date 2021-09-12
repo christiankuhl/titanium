@@ -4,7 +4,7 @@ use crate::asm::{inb, page_fault_linear_address, without_interrupts};
 use crate::drivers::ahci::AHCI_CONTROLLERS;
 use crate::drivers::keyboard::KEYBOARD;
 use crate::drivers::mouse::{move_mouse_cursor, MouseEvent, MOUSE};
-use crate::drivers::pic::PICS;
+use crate::drivers::pic::{PICS, PIC_1_OFFSET};
 use crate::memory::PageFaultErrorCode;
 use crate::multitasking::ThreadRegisters;
 use crate::{print, println};
@@ -95,7 +95,7 @@ pub extern "C" fn ahci_interrupt_handler(_stack_frame: &InterruptStackFrame, rsp
     for ctrl in AHCI_CONTROLLERS.lock().iter_mut() {
         if ctrl.handle_interrupt() {
             unsafe {
-                crate::drivers::pic::PICS.lock().notify_end_of_interrupt(ctrl.interrupt_vector());
+                crate::drivers::pic::PICS.lock().notify_end_of_interrupt(ctrl.interrupt_vector() + PIC_1_OFFSET);
             }
             break;
         }
