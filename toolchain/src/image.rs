@@ -1,7 +1,6 @@
 use std::env;
 use std::env::Args;
 use std::path::Path;
-use std::process::Command;
 
 fn main() {
     let mut args = env::args();
