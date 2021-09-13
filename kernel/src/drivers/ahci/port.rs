@@ -1,4 +1,4 @@
-use core::ptr::addr_of_mut;
+use core::ptr::{addr_of, addr_of_mut};
 
 use crate::memory::{allocate_anywhere, PhysAddr, Translate, VirtAddr};
 
@@ -33,7 +33,9 @@ impl<'a> AHCIPort {
     }
     fn find_cmd_slot(&self) -> Option<usize> {
         // If not set in SACT and CI, the slot is free
-        let mut slots = self.registers().sact | self.registers().ci;
+        let sact = addr_of!(self.registers().sact);
+        let ci = addr_of!(self.registers().ci);
+        let mut slots = unsafe { sact.read_volatile() | ci.read_volatile() };
         for i in 0..32 {
             if slots & 1 == 0 {
                 return Some(i);
@@ -48,39 +50,62 @@ impl<'a> AHCIPort {
         self.clear_sata_error_register();
         self.start_fis_receiving();
         self.set_active_state();
-        self.registers().is = 0xffffffff;
-        self.registers().ie = 0xffffffff;
+        self.clear_interrupt_status();
+        self.clear_interrupt_enable();
         full_memory_barrier();
         // This actually enables the port...
         self.start_command_list_processing();
         full_memory_barrier();
     }
-    fn power_on(&mut self) {
-        if (self.registers().cmd & (1 << 20)) == 0 {
-            return;
+    fn clear_interrupt_enable(&self) {
+        let ptr = addr_of_mut!(self.registers().ie);
+        unsafe {
+            ptr.write_volatile(0xffffffff);
         }
-        self.registers().cmd = self.registers().cmd | (1 << 2)
+    }
+    fn clear_interrupt_status(&self) {
+        let ptr = addr_of_mut!(self.registers().is);
+        unsafe {
+            ptr.write_volatile(0xffffffff);
+        }
+    }
+    fn power_on(&mut self) {
+        let ptr = addr_of_mut!(self.registers().cmd);
+        unsafe {
+            if (ptr.read_volatile() & (1 << 20)) == 0 {
+                return;
+            }
+            ptr.write_volatile(ptr.read_volatile() | (1 << 2));
+        }
     }
     fn spin_up(&mut self) {
         if !self.supports_staggered_spin_up {
             return;
         }
-        self.registers().cmd = self.registers().cmd | (1 << 1)
+        let ptr = addr_of_mut!(self.registers().cmd);
+        unsafe {
+            ptr.write_volatile(ptr.read_volatile() | (1 << 1));
+        }
     }
     fn clear_sata_error_register(&mut self) {
-        self.registers().serr = self.registers().serr;
+        let ptr = addr_of_mut!(self.registers().serr);
+        unsafe {
+            ptr.write_volatile(ptr.read_volatile());
+        }
     }
     fn start_fis_receiving(&mut self) {
-        let ptr = addr_of_mut!((*self.registers()).cmd);
-        unsafe { ptr.write_volatile(ptr.read() | (1 << 4)) };
+        let ptr = addr_of_mut!(self.registers().cmd);
+        unsafe { ptr.write_volatile(ptr.read_volatile() | (1 << 4)) };
     }
     fn set_active_state(&mut self) {
-        let ptr = addr_of_mut!((*self.registers()).cmd);
-        unsafe { ptr.write_volatile(ptr.read() & 0x0ffffff | (1 << 28)) };
+        let ptr = addr_of_mut!(self.registers().cmd);
+        unsafe { ptr.write_volatile(ptr.read_volatile() & 0x0ffffff | (1 << 28)) };
     }
     fn start_command_list_processing(&mut self) {
-        let ptr = addr_of_mut!((*self.registers()).cmd);
-        unsafe { ptr.write_volatile(ptr.read() | 1) };
+        let ptr = addr_of_mut!(self.registers().cmd);
+        unsafe {
+            ptr.write_volatile(ptr.read_volatile() | 1);
+        }
     }
     pub fn identify(&mut self) {
         let slot = self.find_cmd_slot().unwrap() as isize;
@@ -110,13 +135,14 @@ impl<'a> AHCIPort {
             let ptr = addr_of_mut!((*fis).command);
             ptr.write_volatile(ATA_CMD_IDENTIFY);
             self.spin_until_ready();
-            let ptr = addr_of_mut!((*self.registers()).ci);
-            ptr.write_volatile(ptr.read() | (1 << slot));
+            let ptr = addr_of_mut!(self.registers().ci);
+            ptr.write_volatile(ptr.read_volatile() | (1 << slot));
+            let ptr = addr_of!(self.wait_for_completion);
             loop {
                 if self.registers().serr != 0 {
                     panic!("Error accessing AHCI device")
                 }
-                if !self.wait_for_completion {
+                if !ptr.read_volatile() {
                     break;
                 }
             }
@@ -169,9 +195,12 @@ impl<'a> AHCIPort {
     }
     fn spin_until_ready(&self) {
         let mut spin = 0;
-        while (self.registers().tfd & (ATA_SR_BSY | ATA_SR_DRQ) > 0) && spin <= 100 {
-            delay(1000);
-            spin += 1;
+        let ptr = addr_of!(self.registers().tfd);
+        unsafe {
+            while (ptr.read_volatile() & (ATA_SR_BSY | ATA_SR_DRQ) > 0) && spin <= 100 {
+                delay(1000);
+                spin += 1;
+            }
         }
         if spin == 100 {
             panic!("Device is not responding!")
@@ -205,10 +234,7 @@ impl<'a> AHCIPort {
     }
     pub fn handle_interrupt(&mut self) {
         self.wait_for_completion = false;
-        let ptr = addr_of_mut!(self.registers().is);
-        unsafe {
-            ptr.write_volatile(0xffffffff);
-        }
+        self.clear_interrupt_status();
     }
 }
 

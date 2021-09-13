@@ -172,8 +172,10 @@ impl Drop for DiskImage {
 
 pub fn start_qemu(kernel_binary: &str, test: bool, debug: bool, add_args: Vec<&str>) {
     let mut args = vec![
-        "-m", "1G",
-        "-cpu", "host",
+        "-m",
+        "1G",
+        "-cpu",
+        "host",
         "-drive",
         "id=disk,file=titanium.img,if=none,index=0,format=raw",
         "-device",
