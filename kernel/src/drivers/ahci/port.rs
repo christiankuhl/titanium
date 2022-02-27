@@ -1,10 +1,11 @@
 use core::ptr::{addr_of, addr_of_mut};
 
-use crate::memory::{allocate_anywhere, PhysAddr, Translate, VirtAddr};
+use crate::memory::{allocate_anywhere, PhysAddr, Translate, VirtAddr, MemorySize};
 
 use super::controller::AHCIController;
 use super::structs::*;
 use super::{command_list_base, command_table_descriptor, delay, full_memory_barrier, metadata_address};
+use super::super::blockdevice::{BlockDevice, Request};
 
 pub struct AHCIPort {
     pub number: usize,
@@ -13,6 +14,7 @@ pub struct AHCIPort {
     metadata_addr: PhysAddr,
     wait_for_completion: bool,
     supports_staggered_spin_up: bool,
+    connected_device: Option<BlockDevice>,
 }
 
 impl<'a> AHCIPort {
@@ -26,6 +28,7 @@ impl<'a> AHCIPort {
             metadata_addr,
             wait_for_completion: true,
             supports_staggered_spin_up,
+            connected_device: None,
         }
     }
     pub fn registers(&self) -> &mut PortRegisters {
@@ -148,24 +151,29 @@ impl<'a> AHCIPort {
             }
         }
     }
-    pub fn access_device(&mut self) {
+    
+    fn current_scatter_count(&self) -> u16 {
+        1
+    }
+
+    pub fn access_device(&mut self, request: &mut Request) {
         self.spin_until_ready();
         let slot = self.find_cmd_slot().unwrap() as isize;
         unsafe {
             let cmd_hdr = command_list_base(self.parent_number, self.number);
             let cmd_hdr = (cmd_hdr as *mut CommandHeader).offset(slot);
             let ptr = addr_of_mut!((*cmd_hdr).prdtl);
-            // ptr.write_volatile(scatter_count());
+            ptr.write_volatile(self.current_scatter_count());
             let ptr = addr_of_mut!((*cmd_hdr).prdbc);
             ptr.write_volatile(0);
             let cmd_table = command_table_descriptor(self.parent_number, self.number, slot as usize) as *mut CommandTable;
-            // let ptr = addr_of_mut!((*cmd_table).descriptors[0]);
-            // ptr.write_volatile(PhysicalRegionDescriptor {
-            //     base_low: self.metadata_addr as u32,
-            //     base_high: 0,
-            //     reserved: 0,
-            //     byte_count: 511,
-            // });
+            let ptr = addr_of_mut!((*cmd_table).descriptors[0]);
+            ptr.write_volatile(PhysicalRegionDescriptor {
+                base_low: self.metadata_addr as u32,
+                base_high: 0,
+                reserved: 0,
+                byte_count: 511,
+            });
 
             let ptr = addr_of_mut!((*cmd_hdr).attributes);
             ptr.write_volatile(5 | 128);
@@ -230,31 +238,10 @@ impl<'a> AHCIPort {
             logical_sector_size,
             physical_sector_size
         );
-        // m_connected_device = SATADiskDevice::create(m_parent_handler.hba_controller(), *this, logical_sector_size, max_addressable_sector);
+        self.connected_device = Some(BlockDevice::new(logical_sector_size, max_addressable_sector));
     }
     pub fn handle_interrupt(&mut self) {
         self.wait_for_completion = false;
         self.clear_interrupt_status();
-    }
-}
-
-use alloc::string::String;
-use alloc::{format, vec};
-trait DriveSize {
-    fn readable(&self) -> String;
-}
-
-impl DriveSize for u64 {
-    fn readable(&self) -> String {
-        let units = vec!["B", "KB", "MB", "GB", "TB"];
-        let mut result = String::new();
-        for (ord, unit) in units.iter().enumerate() {
-            let value = (*self as f32) / ((1 << (10 * ord)) as f32);
-            result = format!("{:.2} {}", value, unit);
-            if value <= 1024.0 {
-                break;
-            }
-        }
-        result
     }
 }

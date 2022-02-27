@@ -5,8 +5,7 @@ pub mod pic;
 #[macro_use]
 pub mod serial;
 pub mod ahci;
-#[macro_use]
-mod macros;
+mod blockdevice;
 
 pub fn init() {
     pci::init();

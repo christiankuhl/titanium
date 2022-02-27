@@ -1,4 +1,27 @@
 use lazy_static::lazy_static;
+use alloc::string::String;
+use alloc::format;
+
+const UNITS: [&str; 5] = ["B", "KB", "MB", "GB", "TB"];
+pub trait MemorySize {
+    fn readable(&self) -> String;
+}
+
+impl MemorySize for u64 {
+    fn readable(&self) -> String {
+        let unit = (self.log2() / 10).min(4);
+        let value = *self as f32 / ((1 << (10 * unit)) as f32);
+        format!("{:.2} {}", value, UNITS[unit as usize])
+    }
+}
+
+impl MemorySize for usize {
+    fn readable(&self) -> String {
+        let unit = (self.log2() / 10).min(4);
+        let value = *self as f32 / ((1 << (10 * unit)) as f32);
+        format!("{:.2} {}", value, UNITS[unit as usize])
+    }
+}
 
 use crate::{
     asm::{enable_nxe_bit, enable_write_protect_bit},
