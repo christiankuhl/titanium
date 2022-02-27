@@ -1,11 +1,11 @@
 use core::ptr::{addr_of, addr_of_mut};
 
-use crate::memory::{allocate_anywhere, PhysAddr, Translate, VirtAddr, MemorySize};
+use crate::memory::{allocate_anywhere, MemorySize, PhysAddr, Translate, VirtAddr};
 
+use super::super::blockdevice::{BlockDevice, Request};
 use super::controller::AHCIController;
 use super::structs::*;
 use super::{command_list_base, command_table_descriptor, delay, full_memory_barrier, metadata_address};
-use super::super::blockdevice::{BlockDevice, Request};
 
 pub struct AHCIPort {
     pub number: usize,
@@ -151,7 +151,7 @@ impl<'a> AHCIPort {
             }
         }
     }
-    
+
     fn current_scatter_count(&self) -> u16 {
         1
     }

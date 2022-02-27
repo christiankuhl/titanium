@@ -1,6 +1,6 @@
-use lazy_static::lazy_static;
-use alloc::string::String;
 use alloc::format;
+use alloc::string::String;
+use lazy_static::lazy_static;
 
 const UNITS: [&str; 5] = ["B", "KB", "MB", "GB", "TB"];
 pub trait MemorySize {
