@@ -1,7 +1,8 @@
 use lazy_static::lazy_static;
 
-use crate::asm::{inb, outb};
 use crate::shell::vga_buffer::WRITER;
+
+use super::port::Port;
 
 lazy_static! {
     pub static ref MOUSE: spin::Mutex<Mouse> = spin::Mutex::new(Mouse::new());
@@ -55,25 +56,25 @@ pub enum MouseEvent {
 }
 
 struct MouseInit {
-    ctrl_port: u16,
-    data_port: u16,
+    ctrl_port: Port<u8>,
+    data_port: Port<u8>,
 }
 
 impl MouseInit {
     pub fn new() -> Self {
-        Self { ctrl_port: 0x64, data_port: 0x60 }
+        Self { ctrl_port: Port::new(0x64), data_port: Port::new(0x60) }
     }
     unsafe fn wait_for(&mut self, event: &EventType) {
         let mut timeout = 100000;
         while timeout > 0 {
             match event {
                 EventType::Data => {
-                    if (self.ctrl_port_read() & 1) == 1 {
+                    if (self.ctrl_port.read() & 1) == 1 {
                         return;
                     }
                 }
                 EventType::Signal => {
-                    if (self.ctrl_port_read() & 2) == 0 {
+                    if (self.ctrl_port.read() & 2) == 0 {
                         return;
                     }
                 }
@@ -81,36 +82,20 @@ impl MouseInit {
             timeout -= 1;
         }
     }
-    #[inline]
-    fn ctrl_port_read(&self) -> u8 {
-        unsafe { inb(self.ctrl_port) }
-    }
-    #[inline]
-    fn ctrl_port_write(&self, value: u8) {
-        unsafe { outb(self.ctrl_port, value) }
-    }
-    #[inline]
-    fn data_port_read(&self) -> u8 {
-        unsafe { inb(self.data_port) }
-    }
-    #[inline]
-    fn data_port_write(&self, value: u8) {
-        unsafe { outb(self.data_port, value) }
-    }
 
     pub unsafe fn init(&mut self) {
         //Enable the auxiliary mouse device
         self.wait_for(&Signal);
-        self.ctrl_port_write(0xa8u8);
+        self.ctrl_port.write(0xa8u8);
         //Enable the interrupts
         self.wait_for(&Signal);
-        self.ctrl_port_write(0x20u8);
+        self.ctrl_port.write(0x20u8);
         self.wait_for(&Data);
-        let status: u8 = self.data_port_read() | 2;
+        let status: u8 = self.data_port.read() | 2;
         self.wait_for(&Signal);
-        self.ctrl_port_write(0x60u8);
+        self.ctrl_port.write(0x60u8);
         self.wait_for(&Signal);
-        self.data_port_write(status);
+        self.data_port.write(status);
         // Tell the mouse to use default settings
         self.write(0xf6);
         self.read(); // Acknowledge
@@ -120,14 +105,14 @@ impl MouseInit {
     }
     unsafe fn write(&mut self, command: u8) {
         self.wait_for(&Signal);
-        self.ctrl_port_write(0xd4u8);
+        self.ctrl_port.write(0xd4u8);
         self.wait_for(&Signal);
-        self.data_port_write(command);
+        self.data_port.write(command);
     }
     fn read(&mut self) -> u8 {
         unsafe {
             self.wait_for(&Data);
-            self.data_port_read()
+            self.data_port.read()
         }
     }
 }
