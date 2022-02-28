@@ -20,7 +20,6 @@ qemu_test_should_panic = []
 [dependencies]
 volatile = "0.2.6"
 spin = "0.9.2"
-uart_16550 = "0.2.0"
 pc-keyboard = "0.5.0"
 elf = { path = "../userland/libraries/elf" }
 

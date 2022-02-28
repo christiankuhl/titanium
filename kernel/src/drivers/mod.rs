@@ -6,6 +6,7 @@ pub mod pic;
 pub mod serial;
 pub mod ahci;
 mod blockdevice;
+pub mod port;
 
 pub fn init() {
     pci::init();
