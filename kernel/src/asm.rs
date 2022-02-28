@@ -1,4 +1,5 @@
 use crate::interrupts::{DescriptorTablePointer, SegmentSelector};
+use core::arch::asm;
 
 const EFER: u32 = 0xc000_0080;
 const NXE_BIT: u32 = 1 << 11;

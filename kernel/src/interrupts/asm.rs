@@ -1,6 +1,7 @@
 #[macro_export]
 macro_rules! handler {
     ($name: ident) => {{
+        use core::arch::asm;
         #[naked]
         extern "C" fn wrapper() -> ! {
             unsafe {
@@ -50,6 +51,7 @@ macro_rules! handler {
 
 macro_rules! handler_with_error_code {
     ($name: ident) => {{
+        use core::arch::asm;
         #[naked]
         extern "C" fn wrapper() -> ! {
             unsafe {
