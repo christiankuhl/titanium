@@ -56,6 +56,7 @@ fn create_new_disk_image(image_name: &str, size: usize) -> String {
         .unwrap();
     // Set up loopback device
     let loopback_device = set_up_loopback_device(image_name);
+    println!("Set up loopback device: {}", &loopback_device);
     // Create partition table
     let parted_args =
         vec!["mklabel", "msdos", "mkpart", "primary", "ext2", "1MiB", "100%", "-a", "minimal", "set", "1", "boot", "on"];
@@ -93,7 +94,6 @@ fn set_up_loopback_device(image_name: &str) -> String {
     let losetup =
         Command::new("sudo").arg("losetup").arg("--find").arg("--partscan").arg("--show").arg(image_name).output().unwrap();
     let loopback_device = String::from_utf8(losetup.stdout).expect("Failed to set up loopback device!").replace("\n", "");
-    println!("Set up loopback device: {}", &loopback_device);
     loopback_device
 }
 
@@ -129,26 +129,31 @@ fn disk_usage() -> usize {
 pub struct DiskImage {
     loopback_device: String,
     mounted: bool,
+    debug: bool,
 }
 
 impl DiskImage {
-    pub fn create() -> Self {
+    pub fn create(debug: bool) -> Self {
         println!("Creating new image file {}...", IMAGE_NAME);
         let size = disk_usage();
         let loopback_device = create_new_disk_image(IMAGE_NAME, size);
         mount_disk_image(&loopback_device);
         create_root_filesystem();
         install_grub(&loopback_device);
-        Self { loopback_device, mounted: true }
+        Self { loopback_device, mounted: true, debug }
     }
-    pub fn from_existing(image_file: &str) -> Self {
-        println!("Using existing image file {}...", image_file);
+    pub fn from_existing(image_file: &str, debug: bool) -> Self {
+        if debug {
+            println!("Using existing image file {}...", image_file);
+        }
         let loopback_device = set_up_loopback_device(image_file);
         mount_disk_image(&loopback_device);
-        Self { loopback_device, mounted: true }
+        Self { loopback_device, mounted: true, debug }
     }
-    pub fn update(&self, file: &str, with_file: &str, owner: Option<&str>, permissions: Option<&str>) {
-        println!("Updating {} with {}...", file, with_file);
+    pub fn update(&self, file: &str, with_file: &str, owner: Option<&str>, permissions: Option<&str>, debug: bool) {
+        if debug {
+            println!("Updating {} with {}...", file, with_file);
+        }
         let tgt = format!("{}/{}", MOUNT_DIR, file);
         Command::new("sudo").arg("cp").arg(with_file).arg(&tgt).status().unwrap();
         if let Some(owner) = owner {
@@ -163,7 +168,9 @@ impl DiskImage {
 impl Drop for DiskImage {
     fn drop(&mut self) {
         if self.mounted {
-            println!("Unmounting {}...", self.loopback_device);
+            if self.debug {
+                println!("Unmounting {}...", self.loopback_device);
+            }
             Command::new("sleep").arg("1").status().unwrap();
             cleanup(&self.loopback_device);
         }

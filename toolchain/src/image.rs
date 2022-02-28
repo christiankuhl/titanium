@@ -15,7 +15,7 @@ fn main() {
                     toolchain::execute_test_suite(add_args)
                 }
                 Some("create") => {
-                    toolchain::DiskImage::create();
+                    toolchain::DiskImage::create(true);
                 }
                 Some(kernel_binary) => build_and_run(kernel_binary, args),
                 None => {
@@ -34,11 +34,11 @@ fn build_and_run(kernel_binary: &str, args: Args) {
     let test = toolchain::is_test_run(kernel_binary);
     {
         let image = if Path::new(toolchain::IMAGE_NAME).exists() {
-            toolchain::DiskImage::from_existing(toolchain::IMAGE_NAME)
+            toolchain::DiskImage::from_existing(toolchain::IMAGE_NAME, false)
         } else {
-            toolchain::DiskImage::create()
+            toolchain::DiskImage::create(false)
         };
-        image.update("boot/titanium", kernel_binary, Some("0:0"), Some("0400"));
+        image.update("boot/titanium", kernel_binary, Some("0:0"), Some("0400"), false);
     }
     let add_args = args.collect::<Vec<String>>();
     let add_args: Vec<&str> = add_args.iter().map(|s| &**s).collect();

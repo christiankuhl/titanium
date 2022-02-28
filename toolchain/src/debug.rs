@@ -7,11 +7,11 @@ fn main() {
     let kernel_binary = "../target/x86_64-titanium/debug/titanium";
     {
         let image = if Path::new(toolchain::IMAGE_NAME).exists() {
-            toolchain::DiskImage::from_existing(toolchain::IMAGE_NAME)
+            toolchain::DiskImage::from_existing(toolchain::IMAGE_NAME, true)
         } else {
-            toolchain::DiskImage::create()
+            toolchain::DiskImage::create(true)
         };
-        image.update("boot/titanium", kernel_binary, Some("0:0"), Some("0400"));
+        image.update("boot/titanium", kernel_binary, Some("0:0"), Some("0400"), true);
     }
     let mut add_args = args();
     add_args.next();
