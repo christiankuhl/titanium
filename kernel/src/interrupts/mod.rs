@@ -13,6 +13,7 @@ mod handlers;
 use self::handlers::*;
 use self::idt::InterruptDescriptorTable;
 pub use self::idt::{DescriptorTablePointer, Interrupt, SegmentSelector};
+pub use self::asm::enter_userspace;
 
 lazy_static! {
     pub static ref IDT: InterruptDescriptorTable = {
