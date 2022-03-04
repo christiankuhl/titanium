@@ -189,12 +189,11 @@ pub fn start_qemu(kernel_binary: &str, test: bool, debug: bool, add_args: Vec<&s
         "ahci,id=ahci",
         "-device",
         "ide-hd,drive=disk,bus=ahci.0",
+        "-enable-kvm"
     ];
     if debug {
-        args.extend(vec!["-s", "-S"])
-    } else {
-        args.push("-enable-kvm")
-    };
+        args.extend(vec!["-s", "-S"]);
+    }
     if test {
         args.extend(vec!["-device", "isa-debug-exit,iobase=0xf4,iosize=0x04", "-serial", "stdio", "-display", "none"])
     }
