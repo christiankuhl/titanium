@@ -1,8 +1,5 @@
 use lazy_static::lazy_static;
 
-// TEMP:
-pub use asm::enter_userspace;
-
 use crate::drivers::mouse::init_mouse;
 use crate::drivers::pic::PICS;
 use crate::log;

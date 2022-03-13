@@ -4,6 +4,7 @@ use core::fmt::Write;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use volatile::Volatile;
+use crate::drivers::mouse;
 
 lazy_static! {
     pub static ref WRITER: Mutex<Writer> = {
@@ -84,6 +85,11 @@ impl Writer {
         if row >= BUFFER_HEIGHT || col >= BUFFER_WIDTH {
             return;
         }
+        let mut character = char;
+        let pos = mouse::position();
+        if (col, row) == pos {
+            character.invert(); 
+        }
         self.buffer.chars[row][col].write(char);
     }
     pub fn invert(&mut self, row: usize, col: usize) {
@@ -107,7 +113,12 @@ impl Writer {
                 let col = self.column_position;
 
                 let color_code = self.color_code;
-                self.buffer.chars[row][col].write(ScreenChar { ascii_character: byte, color_code });
+                let mut character = ScreenChar { ascii_character: byte, color_code };
+                let pos = mouse::position();
+                if (col, row) == pos {
+                    character.invert(); 
+                }
+                self.buffer.chars[row][col].write(character);
                 self.column_position += 1;
             }
         }
@@ -133,7 +144,11 @@ impl Writer {
     fn new_line(&mut self) {
         for row in 1..BUFFER_HEIGHT {
             for col in 0..BUFFER_WIDTH {
-                let character = self.buffer.chars[row][col].read();
+                let mut character = self.buffer.chars[row][col].read();
+                let pos = mouse::position();
+                if (col, row) == pos || (col, row - 1) == pos {
+                    character.invert(); 
+                }
                 self.buffer.chars[row - 1][col].write(character);
             }
         }

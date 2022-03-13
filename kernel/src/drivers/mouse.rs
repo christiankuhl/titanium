@@ -8,8 +8,9 @@ lazy_static! {
     pub static ref MOUSE: spin::Mutex<Mouse> = spin::Mutex::new(Mouse::new());
 }
 
-static mut MOUSE_X: i8 = 40;
-static mut MOUSE_Y: i8 = 12;
+static mut MOUSE_UNINIT: bool = true;
+static mut MOUSE_X: i8 = -1;
+static mut MOUSE_Y: i8 = -1;
 
 pub struct Mouse {
     buffer: [i8; 3],
@@ -32,8 +33,6 @@ use EventType::*;
 
 impl Mouse {
     pub fn new() -> Self {
-        let mut screen = WRITER.lock();
-        screen.invert(12, 40);
         Self { buffer: [0, 0, 0], offset: 0, buttons: 0 }
     }
     pub fn add_byte(&mut self, data: i8) {
@@ -118,6 +117,9 @@ impl MouseInit {
 }
 
 pub unsafe fn move_mouse_cursor(dx: i8, dy: i8) {
+    if dx == 0 && dy == 0 {
+        return;
+    }
     let mut screen = WRITER.lock();
     screen.invert(MOUSE_Y as usize, MOUSE_X as usize);
     MOUSE_X += dx / 2;
@@ -135,4 +137,9 @@ pub unsafe fn move_mouse_cursor(dx: i8, dy: i8) {
         MOUSE_Y = 24
     };
     screen.invert(MOUSE_Y as usize, MOUSE_X as usize);
+}
+
+#[inline]
+pub fn position() -> (usize, usize) {
+    unsafe { (MOUSE_X as usize, MOUSE_Y as usize) }
 }

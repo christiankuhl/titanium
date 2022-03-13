@@ -42,7 +42,7 @@ impl Thread {
             Box::from_raw(ptr)
         };
         let registers =
-            ((stack.as_ptr() as usize & !0x15) + THREAD_STACK_SIZE - size_of::<ThreadRegisters>()) as *mut ThreadRegisters;
+            ((stack.as_ptr() as usize & !0xf) + THREAD_STACK_SIZE - size_of::<ThreadRegisters>()) as *mut ThreadRegisters;
         unsafe {
             (*registers).rflags = 0x202;
             (*registers).cs = 0x8;

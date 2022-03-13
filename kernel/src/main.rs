@@ -4,7 +4,6 @@
 #![test_runner(test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
-use kernel::asm::without_interrupts;
 use kernel::*;
 
 #[no_mangle]
@@ -15,13 +14,6 @@ pub extern "C" fn kernel_main(multiboot_info: &MultibootInfo) -> ! {
 
     #[cfg(test)]
     test_main();
-
-    without_interrupts(|| {
-        use interrupts::enter_userspace;
-        unsafe {
-            enter_userspace();
-        }
-    });
 
     let idle_thread = multitasking::thread::Thread::new(0, idle);
     let shell = multitasking::thread::Thread::new(1, shell::start);
