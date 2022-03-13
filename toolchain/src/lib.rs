@@ -189,7 +189,7 @@ pub fn start_qemu(kernel_binary: &str, test: bool, debug: bool, add_args: Vec<&s
         "ahci,id=ahci",
         "-device",
         "ide-hd,drive=disk,bus=ahci.0",
-        "-enable-kvm"
+        "-enable-kvm",
     ];
     if debug {
         args.extend(vec!["-s", "-S"]);
@@ -198,6 +198,7 @@ pub fn start_qemu(kernel_binary: &str, test: bool, debug: bool, add_args: Vec<&s
         args.extend(vec!["-device", "isa-debug-exit,iobase=0xf4,iosize=0x04", "-serial", "stdio", "-display", "none"])
     }
     args.extend(add_args);
+    println!("{:?}", &args);
     let mut child = Command::new("qemu-system-x86_64").args(args).spawn().expect("Failed to run QEMU");
     if debug {
         Command::new("rust-gdb").arg(&kernel_binary).arg("-ex").arg("source debug.gdb").status().unwrap();

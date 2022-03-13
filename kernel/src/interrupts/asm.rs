@@ -1,3 +1,5 @@
+use crate::{asm, idle};
+
 #[macro_export]
 macro_rules! handler {
     ($name: ident) => {{
@@ -86,4 +88,29 @@ macro_rules! handler_with_error_code {
         }
         wrapper
     }}
+}
+
+#[naked]
+pub unsafe extern "C" fn enter_userspace() -> ! {
+    use core::arch::asm;
+    asm!("
+    mov rcx, 0xc0000082
+	wrmsr
+	mov rcx, 0xc0000080
+	rdmsr
+	or eax, 1
+	wrmsr
+	mov rcx, 0xc0000081
+	rdmsr
+	mov edx, 0x00180008
+	wrmsr
+	mov ecx, test_user_function
+	mov r11, 0x202
+	sysretq", options(noreturn));
+}
+
+#[no_mangle]
+extern "C" fn test_user_function() {
+    use core::arch::asm;
+    unsafe { asm!("cli") }
 }

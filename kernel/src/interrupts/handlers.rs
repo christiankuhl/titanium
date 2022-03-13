@@ -91,6 +91,23 @@ pub extern "C" fn syscall_handler(_stack_frame: &InterruptStackFrame, rsp: u64) 
 }
 
 #[no_mangle]
+pub extern "C" fn gp_fault_handler(stack_frame: &InterruptStackFrame, _rsp: u64, error_code: u64) -> ! {
+    if error_code > 0 {
+        let tbl = match (error_code & 5) >> 1 {
+            0 => "GDT",
+            1 | 3 => "IDT",
+            2 => "LDT",
+            _ => unreachable!(),
+        };
+        let idx = (error_code & 0xffff) >> 3;
+        let ext = if error_code & 1 > 0 { "External " } else { "" };
+        panic!("EXCEPTION: GENERAL PROTECTION FAULT\n{}Segmentation error in {}, index {}\n{:#x?}", ext, tbl, idx, stack_frame);
+    } else {
+        panic!("EXCEPTION: GENERAL PROTECTION FAULT\n{:#x?}", stack_frame);
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn ahci_interrupt_handler(_stack_frame: &InterruptStackFrame, rsp: u64) -> u64 {
     for ctrl in AHCI_CONTROLLERS.lock().iter_mut() {
         if ctrl.handle_interrupt() {

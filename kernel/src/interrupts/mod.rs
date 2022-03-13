@@ -13,6 +13,7 @@ mod handlers;
 use self::handlers::*;
 use self::idt::InterruptDescriptorTable;
 pub use self::idt::{DescriptorTablePointer, Interrupt, SegmentSelector};
+pub use self::asm::enter_userspace;
 
 lazy_static! {
     pub static ref IDT: InterruptDescriptorTable = {
@@ -28,6 +29,7 @@ lazy_static! {
         idt.set_handler(Mouse as u8, handler!(mouse_interrupt_handler));
         idt.set_handler(Syscall as u8, handler!(syscall_handler));
         idt.set_handler(AHCI as u8, handler!(ahci_interrupt_handler));
+        idt.set_handler(GeneralProtectionFault as u8, handler_with_error_code!(gp_fault_handler));
         idt
     };
 }

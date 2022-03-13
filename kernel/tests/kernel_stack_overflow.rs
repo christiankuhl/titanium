@@ -14,7 +14,8 @@ pub extern "C" fn kernel_main(multiboot_info: &kernel::MultibootInfo) {
 
 #[test_case]
 fn guard_page_present() {
+    // FIXME: Fd a way not to hardcode this
     unsafe {
-        *(0x169000 as *mut u8) = 42;
+        *(0x198000 as *mut u8) = 42;
     }
 }
