@@ -6,7 +6,7 @@ This is a toy operating system I am writing solely for educational and recreatio
 
 ## What can it do?
 
-It's state is currently very rudimentary: We can 
+Its state is currently very rudimentary: We can 
 * boot into long mode 
 * print keyboard and mouse input to the VGA text buffer
 * allocate memory on the heap and have paging working
