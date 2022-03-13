@@ -8,18 +8,27 @@ use super::{
 };
 
 pub const DOUBLE_FAULT_IST_INDEX: u16 = 0;
-const KERNEL_CODE64: u64 = 0xaf9b000000ffff;
+const KERNEL_CODE64: u64 = 0xa0_9800_0000_ffff;
+const KERNEL_DATA64: u64 = 0xc0_9200_0000_ffff;
+const USER_CODE64: u64 = 0xa0_f800_0000_ffff;
+const USER_DATA64: u64 = 0xc0_f200_0000_ffff;
 const DPL_RING_3: u64 = 3 << 45;
 const PRESENT: u64 = 1 << 47;
 
 lazy_static! {
-    static ref TSS: TaskStateSegment = {
+    pub static ref TSS: TaskStateSegment = {
         let mut tss = TaskStateSegment::new();
         tss.interrupt_stack_table[DOUBLE_FAULT_IST_INDEX as usize] = {
             const STACK_SIZE: usize = 4096 * 5;
-            static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
-
-            let stack_start = unsafe { &STACK as *const _ as usize };
+            static mut DOUBLE_FAULT_STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
+            let stack_start = unsafe { &DOUBLE_FAULT_STACK as *const _ as usize };
+            let stack_end = stack_start + STACK_SIZE;
+            stack_end
+        };
+        tss.privilege_stack_table[0] = {
+            const STACK_SIZE: usize = 4096 * 5;
+            static mut PRIVILEGE_STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
+            let stack_start = unsafe { &PRIVILEGE_STACK as *const _ as usize };
             let stack_end = stack_start + STACK_SIZE;
             stack_end
         };
@@ -30,28 +39,33 @@ lazy_static! {
 lazy_static! {
     static ref GDT: (GlobalDescriptorTable, Selectors) = {
         let mut gdt = GlobalDescriptorTable::new();
-        let code_selector = gdt.add_entry(Descriptor::UserSegment(KERNEL_CODE64));
+        let kernel_code_selector = gdt.add_entry(Descriptor::UserSegment(KERNEL_CODE64));
+        let kernel_data_selector = gdt.add_entry(Descriptor::UserSegment(KERNEL_DATA64));
+        gdt.add_entry(Descriptor::UserSegment(0));
+        let user_data_selector = gdt.add_entry(Descriptor::UserSegment(USER_DATA64));
+        let user_code_selector = gdt.add_entry(Descriptor::UserSegment(USER_CODE64));
         let tss_selector = gdt.add_entry(Descriptor::tss_segment(&TSS));
-        (gdt, Selectors { code_selector, tss_selector })
+        (gdt, Selectors { kernel_code_selector, user_code_selector, tss_selector })
     };
 }
 
 struct Selectors {
-    code_selector: SegmentSelector,
+    kernel_code_selector: SegmentSelector,
+    user_code_selector: SegmentSelector,
     tss_selector: SegmentSelector,
 }
 
 pub fn init() {
     GDT.0.load();
     unsafe {
-        set_code_segment_selector(GDT.1.code_selector);
+        set_code_segment_selector(GDT.1.kernel_code_selector);
         load_task_state_segment(GDT.1.tss_selector);
     }
 }
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C, packed)]
-struct TaskStateSegment {
+pub struct TaskStateSegment {
     reserved_1: u32,
     /// The full 64-bit canonical forms of the stack pointers (RSP) for privilege levels 0-2.
     pub privilege_stack_table: [usize; 3],
@@ -154,12 +168,12 @@ impl Descriptor {
 
         let mut low = PRESENT;
         // base
-        low = (!0xffffff0000 & low) | ((ptr & 0xffffff) << 16);
-        low = (!0xff00000000000000 & low) | ((ptr & 0xff000000) << 32);
+        low = (!0xff_ffff_0000 & low) | ((ptr & 0xff_ffff) << 16);
+        low = (!0xff00_0000_0000_0000 & low) | ((ptr & 0xff00_0000) << 32);
         // limit (the `-1` is needed since the bound is inclusive)
         low = (!0xffff & low) | ((size_of::<TaskStateSegment>() - 1) as u64) & 0xffff;
         // type (0b1001 = available 64-bit tss)
-        low = (!0xf0000000000 & low) | (0b1001 << 40);
+        low = (!0xf00_0000_0000 & low) | (0b1001 << 40);
         let high = (ptr & 0xffffffff00000000) >> 32;
 
         Descriptor::SystemSegment(low, high)

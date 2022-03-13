@@ -1,5 +1,3 @@
-use crate::{asm, idle};
-
 #[macro_export]
 macro_rules! handler {
     ($name: ident) => {{
@@ -90,10 +88,11 @@ macro_rules! handler_with_error_code {
     }}
 }
 
-#[naked]
-pub unsafe extern "C" fn enter_userspace() -> ! {
+// #[naked]
+pub unsafe extern "C" fn enter_userspace() {
     use core::arch::asm;
-    asm!("
+    asm!(
+        "
     mov rcx, 0xc0000082
 	wrmsr
 	mov rcx, 0xc0000080
@@ -104,13 +103,14 @@ pub unsafe extern "C" fn enter_userspace() -> ! {
 	rdmsr
 	mov edx, 0x00180008
 	wrmsr
-	mov ecx, test_user_function
-	mov r11, 0x202
-	sysretq", options(noreturn));
+	mov rcx, offset test_user_function // to be loaded into RIP
+	mov r11, 0x002 // to be loaded into EFLAGS
+	sysretq"
+    );
 }
 
 #[no_mangle]
 extern "C" fn test_user_function() {
     use core::arch::asm;
-    unsafe { asm!("cli") }
+    unsafe { asm!("hlt") }
 }
