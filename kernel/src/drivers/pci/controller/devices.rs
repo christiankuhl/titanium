@@ -222,6 +222,10 @@ impl Display for StandardPCIDevice {
         let subclass_id = self.common.subclass_id.read();
         let descr = super::classification::description(class_id, subclass_id, 0);
         let vendor = super::vendors::vendor(vendor_id);
-        write!(f, "{} {} at {}", descr, vendor, self.bdf)
+        if vendor == "Unknown vendor" {
+            write!(f, "{} ({:#04x}) {} at {}", vendor, vendor_id, descr, self.bdf)
+        } else {
+            write!(f, "{} {} at {}", vendor, descr, self.bdf)
+        }
     }
 }
