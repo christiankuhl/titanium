@@ -74,7 +74,7 @@ impl CommonPCIHeader {
 
 #[derive(Copy, Clone, Debug)]
 pub struct StandardPCIDevice {
-    bdf: BDF,
+    pub bdf: BDF,
     pub common: CommonPCIHeader,
     pub bar: BaseAddressRegisters,
     pub cis_pointer: Register<u32>,

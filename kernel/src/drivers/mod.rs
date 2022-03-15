@@ -7,8 +7,10 @@ pub mod serial;
 pub mod ahci;
 mod blockdevice;
 pub mod port;
+pub mod vga;
 
 pub fn init() {
     pci::init();
     ahci::init();
+    vga::init();
 }
