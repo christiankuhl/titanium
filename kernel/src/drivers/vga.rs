@@ -1,14 +1,20 @@
-use core::mem::size_of;
+use core::{
+    mem::size_of,
+    ops::{Deref, DerefMut},
+};
 
 use super::pci::{BaseAddressRegister, PCIDevice};
-use crate::memory::{allocate_identity_mapped, EntryFlags, Flags};
-use alloc::boxed::Box;
+use crate::{
+    graphics::Colour,
+    memory::{allocate_identity_mapped, EntryFlags, Flags},
+};
+use alloc::{alloc::alloc, alloc::Layout, boxed::Box};
 use lazy_static::lazy_static;
 
 const QEMU: u16 = 0x1234;
 const QEMU_VGA: u16 = 0x1111;
-const SCREEN_WIDTH: u16 = 1024;
-const SCREEN_HEIGHT: u16 = 768;
+pub const SCREEN_WIDTH: u16 = 1024;
+pub const SCREEN_HEIGHT: u16 = 768;
 
 lazy_static! {
     pub static ref VGA: spin::Mutex<VideoGraphicsAdapter> = {
@@ -76,9 +82,64 @@ impl VideoGraphicsAdapter {
     fn unblank(&mut self) {
         self.registers.vga_ioports[0] = 0x20;
     }
+    #[inline]
+    pub fn flip(&mut self, buffer: &ScreenBuffer) {
+        self.framebuffer.flip(buffer);
+    }
 }
 
-type ScreenBuffer = [u8; 4 * SCREEN_WIDTH as usize * SCREEN_HEIGHT as usize];
+type _ScreenBuffer = [Colour; SCREEN_WIDTH as usize * SCREEN_HEIGHT as usize];
+
+#[repr(C)]
+pub struct ScreenBuffer(_ScreenBuffer);
+
+impl ScreenBuffer {
+    pub fn new() -> Box<Self> {
+        unsafe {
+            let ptr = alloc(Layout::new::<_ScreenBuffer>()) as *mut Self;
+            let mut result = Box::from_raw(ptr);
+            (*result).fill(Colour::black());
+            result
+        }
+    }
+    pub fn clear(&mut self) {
+        self.0.fill(Colour::black());
+    }
+}
+
+impl<Idx> core::ops::Index<Idx> for ScreenBuffer
+where
+    Idx: core::slice::SliceIndex<[Colour]>,
+{
+    type Output = Idx::Output;
+
+    fn index(&self, index: Idx) -> &Self::Output {
+        &self.0[index]
+    }
+}
+
+impl<Idx> core::ops::IndexMut<Idx> for ScreenBuffer
+where
+    Idx: core::slice::SliceIndex<[Colour]>,
+{
+    fn index_mut(&mut self, index: Idx) -> &mut Self::Output {
+        &mut self.0[index]
+    }
+}
+
+impl Deref for ScreenBuffer {
+    type Target = _ScreenBuffer;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for ScreenBuffer {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
 #[repr(C, packed)]
 struct FrameBuffer {
@@ -87,10 +148,11 @@ struct FrameBuffer {
 
 impl FrameBuffer {
     fn clear(&mut self) {
-        self.buffer.fill(0);
+        self.buffer.0.fill(Colour::black());
     }
+    #[inline]
     fn flip(&mut self, buffer: &ScreenBuffer) {
-        self.buffer.copy_from_slice(buffer);
+        self.buffer.0.copy_from_slice(&buffer.0);
     }
 }
 
