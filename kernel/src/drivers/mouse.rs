@@ -1,6 +1,6 @@
 use lazy_static::lazy_static;
 
-use crate::shell::vga_buffer::WRITER;
+use crate::shell::vga_text_buffer::WRITER;
 
 use super::port::Port;
 
