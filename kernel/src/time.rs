@@ -5,7 +5,7 @@ use crate::{
 use core::fmt;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-const NANOSECONDS_PER_TICK: u64 = 838_096;
+const NANOSECONDS_PER_TICK: u64 = 999_847;
 const OFFSET_1985: u64 = ((24 * (21 + 30 + 31) + 15) * 60 + 5) * 60;
 static mut TIME: (AtomicU64, AtomicU64) = (AtomicU64::new(0), AtomicU64::new(0));
 
