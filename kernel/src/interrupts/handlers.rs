@@ -1,4 +1,5 @@
 use pc_keyboard::DecodedKey;
+use core::sync::atomic::{AtomicU64, Ordering};
 
 use crate::asm::{inb, page_fault_linear_address, without_interrupts};
 use crate::drivers::ahci::AHCI_CONTROLLERS;
@@ -7,9 +8,12 @@ use crate::drivers::mouse::{move_mouse_cursor, MouseEvent, MOUSE};
 use crate::drivers::pic::{PICS, PIC_1_OFFSET};
 use crate::memory::PageFaultErrorCode;
 use crate::multitasking::ThreadRegisters;
+use crate::time::tick;
 use crate::{print, println};
 
 use super::Interrupt;
+
+static mut TICKS: AtomicU64 = AtomicU64::new(0);
 
 #[no_mangle]
 pub extern "C" fn divide_by_zero_handler(stack_frame: &InterruptStackFrame) -> ! {
@@ -39,8 +43,14 @@ pub extern "C" fn double_fault_handler(stack_frame: &InterruptStackFrame, _error
 #[no_mangle]
 pub extern "C" fn timer_interrupt_handler(_stack_frame: &mut InterruptStackFrame, rsp: u64) -> u64 {
     unsafe {
+        tick();
+        let ticks = TICKS.fetch_add(1, Ordering::SeqCst);
+        if ticks % 10 != 0 {
+            PICS.lock().notify_end_of_interrupt(Interrupt::Timer as u8);
+            return rsp;
+        }
         let new_rsp = {
-            let mut scheduler = crate::multitasking::SCHEDULER.lock();
+        let mut scheduler = crate::multitasking::SCHEDULER.lock();
             let cpu_state = rsp as *mut ThreadRegisters;
             scheduler.switch_thread(cpu_state) as *const _ as u64
         };

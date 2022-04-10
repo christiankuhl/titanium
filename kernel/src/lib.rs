@@ -31,6 +31,7 @@ pub mod multitasking;
 pub mod shell;
 pub mod syscalls;
 pub mod testing;
+pub mod time;
 
 pub use asm::{enable_interrupts, idle};
 pub use multiboot::MultibootInfo;
@@ -39,6 +40,7 @@ pub fn init(multiboot_info: &multiboot::MultibootInfo) {
     interrupts::init();
     log!("\nConfiguring physical memory...");
     memory::init(multiboot_info);
+    time::init();
     enable_interrupts();
     drivers::init();
 }

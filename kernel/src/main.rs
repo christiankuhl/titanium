@@ -15,7 +15,7 @@ pub extern "C" fn kernel_main(multiboot_info: &MultibootInfo) -> ! {
     #[cfg(test)]
     test_main();
 
-    test_animation();
+    // test_animation();
 
     let idle_thread = multitasking::thread::Thread::new(0, idle);
     let shell = multitasking::thread::Thread::new(1, shell::start);
