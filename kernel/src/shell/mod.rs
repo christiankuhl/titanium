@@ -1,12 +1,28 @@
-use crate::asm::idle;
-use crate::{print, println};
-
 pub mod vga_text_buffer;
+mod clock;
+
+use crate::{print, println};
+use clock::Clock;
 
 pub fn start() -> ! {
-    println!("Hello, world!\nHow are you on this most glorious of days?\n");
-    print!("> ");
-    idle();
+    let mut shell = Shell::new();
+    shell.repl()
 }
 
-struct Shell {}
+struct Shell {
+    clock: Clock
+}
+
+impl Shell {
+    fn new() -> Self {
+        Self { clock: Clock::new() }
+    }
+    fn repl(&mut self) -> ! {
+        println!("Hello, world!\nHow are you on this most glorious of days?\n");
+        print!("> ");
+        self.clock.draw();
+        loop {
+            self.clock.update();
+        }
+    }
+}

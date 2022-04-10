@@ -64,6 +64,9 @@ impl ScreenChar {
     pub fn invert(&mut self) {
         self.color_code.invert();
     }
+    pub fn new(byte: u8) -> Self {
+        ScreenChar { ascii_character: byte, color_code: ColorCode::new(Color::LightBlue, Color::Black) }
+    }
 }
 
 const BUFFER_HEIGHT: usize = 25;
@@ -140,6 +143,24 @@ impl Writer {
         }
     }
 
+    fn write_string_to(&mut self, s: &str, row: usize, col: usize) {
+        let mut row = row;
+        let mut col = col;
+        for byte in s.bytes() {
+            match byte {
+                // printable ASCII byte or newline
+                0x20..=0x7e | b'\n' | b'\r' => self.write_screen_char(ScreenChar::new(byte), row, col),
+                // not part of printable ASCII range
+                _ => self.write_screen_char(ScreenChar::new(0xfe), row, col),
+            }
+            col += 1;
+            if col >= BUFFER_WIDTH {
+                row += 1;
+                col = 0;
+            }
+        }
+    }
+
     /// Shifts all lines one line up and clears the last row.
     fn new_line(&mut self) {
         for row in 1..BUFFER_HEIGHT {
@@ -196,6 +217,12 @@ macro_rules! println {
 pub fn _print(args: fmt::Arguments) {
     without_interrupts(|| {
         WRITER.lock().write_fmt(args).unwrap();
+    });
+}
+
+pub fn print_at(s: &str, row: usize, column: usize) {
+    without_interrupts(|| {
+        WRITER.lock().write_string_to(s, row, column);
     });
 }
 
