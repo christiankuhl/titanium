@@ -6,9 +6,9 @@ pub mod pic;
 pub mod serial;
 pub mod ahci;
 mod blockdevice;
+mod pit;
 pub mod port;
 pub mod vga;
-mod pit;
 
 pub fn init() {
     pit::init();

@@ -1,5 +1,5 @@
-use pc_keyboard::DecodedKey;
 use core::sync::atomic::{AtomicU64, Ordering};
+use pc_keyboard::DecodedKey;
 
 use crate::asm::{inb, page_fault_linear_address, without_interrupts};
 use crate::drivers::ahci::AHCI_CONTROLLERS;
@@ -50,7 +50,7 @@ pub extern "C" fn timer_interrupt_handler(_stack_frame: &mut InterruptStackFrame
             return rsp;
         }
         let new_rsp = {
-        let mut scheduler = crate::multitasking::SCHEDULER.lock();
+            let mut scheduler = crate::multitasking::SCHEDULER.lock();
             let cpu_state = rsp as *mut ThreadRegisters;
             scheduler.switch_thread(cpu_state) as *const _ as u64
         };

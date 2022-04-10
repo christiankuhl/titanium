@@ -1,5 +1,5 @@
-pub mod vga_text_buffer;
 mod clock;
+pub mod vga_text_buffer;
 
 use crate::{print, println};
 use clock::Clock;
@@ -10,7 +10,7 @@ pub fn start() -> ! {
 }
 
 struct Shell {
-    clock: Clock
+    clock: Clock,
 }
 
 impl Shell {

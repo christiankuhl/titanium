@@ -1,9 +1,9 @@
+use super::vga_text_buffer;
 use crate::time::Timestamp;
 use alloc::format;
-use super::vga_text_buffer;
 
 pub struct Clock {
-    time: Timestamp
+    time: Timestamp,
 }
 
 impl Clock {
@@ -12,7 +12,9 @@ impl Clock {
     }
     pub fn update(&mut self) {
         let new_time = Timestamp::now();
-        if new_time == self.time { return };
+        if new_time == self.time {
+            return;
+        };
         self.time = new_time;
         self.draw();
     }

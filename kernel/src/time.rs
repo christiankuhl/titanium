@@ -1,4 +1,7 @@
-use crate::{asm::{inb, outb, without_interrupts}, log};
+use crate::{
+    asm::{inb, outb, without_interrupts},
+    log,
+};
 use core::fmt;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -10,12 +13,8 @@ pub fn cmos_time() -> Timestamp {
     let disable_nmi = true;
     // Status Register B, Bit 1 (value = 2): Enables 24 hour format if set
     // Status Register B, Bit 2 (value = 4): Enables Binary mode if set
-    let status = read_cmos_register(0x0b, disable_nmi); 
-    let from_bcd = if status & 4 > 0 {
-        |x| x
-    } else {
-        |x| 10u8 * ((x & 0xf0) >> 4) + (x & 0x0f)
-    };
+    let status = read_cmos_register(0x0b, disable_nmi);
+    let from_bcd = if status & 4 > 0 { |x| x } else { |x| 10u8 * ((x & 0xf0) >> 4) + (x & 0x0f) };
     // 0x32      Century (maybe)     19–20
     let century = from_bcd(read_cmos_register(0x32, disable_nmi)) as u16;
     // 0x09      Year                0–99
@@ -26,7 +25,7 @@ pub fn cmos_time() -> Timestamp {
     let weekday = Weekday(from_bcd(read_cmos_register(0x06, disable_nmi)) % 7);
     // 0x07      Day of Month        1–31
     let day = Ordinal(from_bcd(read_cmos_register(0x07, disable_nmi)));
-    // 0x04      Hours               0–23 in 24-hour mode, 
+    // 0x04      Hours               0–23 in 24-hour mode,
     //                               1–12 in 12-hour mode, highest bit set if pm
     let hours_raw = from_bcd(read_cmos_register(0x04, disable_nmi));
     let hours = Hours(hours_raw & 0x7f + if (hours_raw & 0x80 > 0) && (status & 2 > 0) { 12 } else { 0 });
@@ -56,13 +55,21 @@ pub struct Timestamp {
 }
 
 impl Timestamp {
-    fn from_cmos_data(weekday: Weekday, day: Ordinal, month: Month, year: Year, hours: Hours, minutes: Minutes, seconds: Seconds) -> Self {
+    fn from_cmos_data(
+        weekday: Weekday,
+        day: Ordinal,
+        month: Month,
+        year: Year,
+        hours: Hours,
+        minutes: Minutes,
+        seconds: Seconds,
+    ) -> Self {
         let ts = Self { day, month, year, hours, minutes, seconds };
         assert!(ts.weekday() == weekday);
         ts
     }
     fn from_raw(year: u16, month: u8, day: u8, hours: u8, minutes: u8, seconds: u8) -> Self {
-        Self { 
+        Self {
             year: Year(year),
             month: Month(month),
             day: Ordinal(day),
@@ -90,7 +97,12 @@ impl Timestamp {
         let mut day = self.day.0 as u16;
         let mut year = self.year.0;
         let month = self.month.0 as u16;
-        day += if month < 3 { year -= 1; year + 1 } else { year - 2 };
+        day += if month < 3 {
+            year -= 1;
+            year + 1
+        } else {
+            year - 2
+        };
         let weekday = (((((23 * month) / 9) + day + 4 + (year / 4)) - (year / 100) + (year / 400)) + 1) % 7;
         Weekday(weekday as u8)
     }
@@ -120,7 +132,7 @@ impl Timestamp {
         seconds %= 3600;
         let minutes = seconds / 60;
         seconds %= 60;
-        Self::from_raw(year, month, day, hours as u8, minutes as u8, seconds as u8) 
+        Self::from_raw(year, month, day, hours as u8, minutes as u8, seconds as u8)
     }
 
     pub fn now() -> Self {
@@ -130,15 +142,25 @@ impl Timestamp {
 
 impl fmt::Display for Timestamp {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        write!(f, "{}, the {} of {} {}, {:02}:{:02}:{:02}", self.weekday(), self.day, self.month, self.year, self.hours.0, self.minutes.0, self.seconds.0)
-    } 
+        write!(
+            f,
+            "{}, the {} of {} {}, {:02}:{:02}:{:02}",
+            self.weekday(),
+            self.day,
+            self.month,
+            self.year,
+            self.hours.0,
+            self.minutes.0,
+            self.seconds.0
+        )
+    }
 }
 
 #[derive(PartialEq, Eq)]
 pub struct Weekday(u8);
 
 impl fmt::Display for Weekday {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> { 
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         let day = match self.0 % 7 {
             0 => "Saturday",
             1 => "Sunday",
@@ -161,8 +183,12 @@ impl Month {
         match self.0 {
             1 => 31,
             2 => {
-                if year.is_leap_year() { 29 } else { 28 }
-            },
+                if year.is_leap_year() {
+                    29
+                } else {
+                    28
+                }
+            }
             3 => 31,
             4 => 30,
             5 => 31,
@@ -173,13 +199,13 @@ impl Month {
             10 => 31,
             11 => 30,
             12 => 31,
-            _ => unreachable!(),   
+            _ => unreachable!(),
         }
     }
 }
 
 impl fmt::Display for Month {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> { 
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         let mth = match self.0 {
             1 => "January",
             2 => "February",
@@ -203,7 +229,7 @@ impl fmt::Display for Month {
 pub struct Ordinal(u8);
 
 impl fmt::Display for Ordinal {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> { 
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         let suffix = match self.0 % 10 {
             0 => "th",
             1 => "st",
@@ -223,7 +249,11 @@ impl Year {
         (self.0 % 4 == 0) && (self.0 % 100 != 0 || self.0 % 400 == 0)
     }
     fn days(&self) -> u16 {
-        if self.is_leap_year() { 366 } else { 365 }
+        if self.is_leap_year() {
+            366
+        } else {
+            365
+        }
     }
     fn leap_years_since_epoch(&self) -> u64 {
         (1985..self.0).fold(0, |acc, x| if Year(x).is_leap_year() { acc + 1 } else { acc })
@@ -231,7 +261,7 @@ impl Year {
 }
 
 impl fmt::Display for Year {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> { 
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "{}", self.0)
     }
 }
@@ -240,7 +270,7 @@ impl fmt::Display for Year {
 pub struct Hours(u8);
 
 impl fmt::Display for Hours {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> { 
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "{}", self.0)
     }
 }
@@ -249,7 +279,7 @@ impl fmt::Display for Hours {
 pub struct Minutes(u8);
 
 impl fmt::Display for Minutes {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> { 
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "{}", self.0)
     }
 }
@@ -258,7 +288,7 @@ impl fmt::Display for Minutes {
 pub struct Seconds(u8);
 
 impl fmt::Display for Seconds {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> { 
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "{}", self.0)
     }
 }

@@ -1,6 +1,5 @@
 use crate::drivers::vga::{ScreenBuffer, SCREEN_WIDTH, VGA};
 use alloc::boxed::Box;
-use core::iter::Iterator;
 
 #[repr(C, packed)]
 #[derive(Clone, Copy, Default)]
