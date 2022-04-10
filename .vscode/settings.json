@@ -1,5 +1,8 @@
 {
     "rust-analyzer.cargo.target": "x86_64-unknown-linux-gnu",
     "rust-analyzer.checkOnSave.allTargets": false,
-    "cmake.configureOnOpen": false
+    "cmake.configureOnOpen": false,
+    "editor.fontFamily": "Fira Code",
+    "editor.fontSize": 15,
+    "editor.fontLigatures": true
 }
